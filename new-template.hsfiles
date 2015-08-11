@@ -3,15 +3,15 @@ name:                {{name}}
 version:             0.1.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
-homepage:            http://github.com/commercialhaskell/{{name}}#readme
+homepage:            http://github.com/your-username/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Your name here
-maintainer:          your.address@example.com
--- copyright:           
+author:              {{author-name}}
+maintainer:          {{author-email}}
+-- copyright:
 category:            Web
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
 library
@@ -66,7 +66,7 @@ main :: IO ()
 main = someFunc
 
 {-# START_FILE LICENSE #-}
-Copyright (c) 2015
+Copyright {{author-name}} (c) 2015
 
 All rights reserved.
 
@@ -81,7 +81,7 @@ modification, are permitted provided that the following conditions are met:
       disclaimer in the documentation and/or other materials provided
       with the distribution.
 
-    * Neither the name of Your name here nor the names of other
+    * Neither the name of {{author-name}} nor the names of other
       contributors may be used to endorse or promote products derived
       from this software without specific prior written permission.
 
