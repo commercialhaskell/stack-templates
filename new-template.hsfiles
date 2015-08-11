@@ -6,7 +6,7 @@ description:         Please see README.md
 homepage:            http://github.com/your-username/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
-author:              {{author-name}}
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}
 -- copyright:
 category:            Web
