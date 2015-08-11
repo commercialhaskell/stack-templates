@@ -9,7 +9,7 @@ license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
 copyright:           {{copyright}}{{^copyright}}2010 Author Here{{/copyright}}
-category:            Web
+category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
