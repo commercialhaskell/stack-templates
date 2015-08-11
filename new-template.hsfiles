@@ -3,7 +3,7 @@ name:                {{name}}
 version:             0.1.0.0
 synopsis:            Initial project template from stack
 description:         Please see README.md
-homepage:            http://github.com/your-username/{{name}}#readme
+homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
@@ -39,7 +39,7 @@ test-suite {{name}}-test
 
 source-repository head
   type:     git
-  location: https://github.com/commercialhaskell/{{name}}
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
