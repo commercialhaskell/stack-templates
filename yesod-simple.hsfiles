@@ -390,8 +390,8 @@ import Settings.StaticFiles  as Import
 import Yesod.Core.Types      as Import (loggerSet)
 import Yesod.Default.Config2 as Import
 
-{-# START_FILE PROJECTNAME.cabal #-}
-name:              PROJECTNAME
+{-# START_FILE {{name}}.cabal #-}
+name:              {{name}}
 version:           0.0.0
 cabal-version:     >= 1.8
 build-type:        Simple
@@ -471,13 +471,13 @@ library
                  , vector
                  , time
 
-executable         PROJECTNAME
+executable         {{name}}
     if flag(library-only)
         Buildable: False
 
     main-is:           main.hs
     hs-source-dirs:    app
-    build-depends:     base, PROJECTNAME
+    build-depends:     base, {{name}}
 
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 
@@ -505,7 +505,7 @@ test-suite test
                 TupleSections
 
     build-depends: base
-                 , PROJECTNAME
+                 , {{name}}
                  , yesod-test >= 1.4.3 && < 1.5
                  , yesod-core
                  , yesod
@@ -768,7 +768,7 @@ modifyStoredIORef store f = withStore store $ \ref -> do
 
 {-# START_FILE app/devel.hs #-}
 {-# LANGUAGE PackageImports #-}
-import "PROJECTNAME" Application (develMain)
+import "{{name}}" Application (develMain)
 import Prelude (IO)
 
 main :: IO ()
@@ -822,7 +822,7 @@ stanzas:
 
     # Name of your executable. You are unlikely to need to change this.
     # Note that all file paths are relative to the keter.yml file.
-    exec: ../dist/build/PROJECTNAME/PROJECTNAME
+    exec: ../dist/build/{{name}}/{{name}}
 
     # Command line options passed to your application.
     args: []
@@ -831,7 +831,7 @@ stanzas:
       # You can specify one or more hostnames for your application to respond
       # to. The primary hostname will be used for generating your application
       # root.
-      - www.PROJECTNAME.com
+      - www.{{name}}.com
 
     # Enable to force Keter to redirect to https
     # Can be added to any stanza
@@ -840,7 +840,7 @@ stanzas:
   # Static files.
   - type: static-files
     hosts:
-      - static.PROJECTNAME.com
+      - static.{{name}}.com
     root: ../static
 
     # Uncomment to turn on directory listings.
@@ -850,9 +850,9 @@ stanzas:
   - type: redirect
 
     hosts:
-      - PROJECTNAME.com
+      - {{name}}.com
     actions:
-      - host: www.PROJECTNAME.com
+      - host: www.{{name}}.com
         # secure: false
         # port: 80
 
