@@ -116,14 +116,14 @@ import Yesod.Core
 main :: IO ()
 main = warp 3000 App
 
-{-# START_FILE PROJECTNAME.cabal #-}
-name:               PROJECTNAME
+{-# START_FILE {{name}}.cabal #-}
+name:               {{name}}
 version:            0.0.0
 cabal-version:      >= 1.8
 build-type:         Simple
 extra-source-files: routes
 
-executable          PROJECTNAME
+executable          {{name}}
   main-is:          Main.hs
   other-modules:    Application
                     Foundation

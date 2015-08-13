@@ -458,8 +458,8 @@ let mongoSettings = (mkPersistSettings (ConT ''MongoContext))
  in share [mkPersist mongoSettings]
     $(persistFileWith upperCaseSettings "config/models")
 
-{-# START_FILE PROJECTNAME.cabal #-}
-name:              PROJECTNAME
+{-# START_FILE {{name}}.cabal #-}
+name:              {{name}}
 version:           0.0.0
 cabal-version:     >= 1.8
 build-type:        Simple
@@ -519,9 +519,9 @@ library
                  , classy-prelude-yesod          >= 0.10.2
                  , bytestring                    >= 0.9        && < 0.11
                  , text                          >= 0.11       && < 2.0
-                 , persistent                    >= 2.0        && < 2.2
-                 , persistent-mongoDB            >= 2.1.2      && < 2.2
-                 , persistent-template           >= 2.0        && < 2.2
+                 , persistent                    >= 2.0        && < 2.3
+                 , persistent-mongoDB            >= 2.1.2      && < 2.3
+                 , persistent-template           >= 2.0        && < 2.3
                  , template-haskell
                  , shakespeare                   >= 2.0        && < 2.1
                  , hjsmin                        >= 0.1        && < 0.2
@@ -530,12 +530,12 @@ library
                  , yaml                          >= 0.8        && < 0.9
                  , http-conduit                  >= 2.1        && < 2.2
                  , directory                     >= 1.1        && < 1.3
-                 , warp                          >= 3.0        && < 3.1
+                 , warp                          >= 3.0        && < 3.2
                  , data-default
-                 , aeson                         >= 0.6        && < 0.9
+                 , aeson                         >= 0.6        && < 0.10
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
-                 , fast-logger                   >= 2.2        && < 2.4
+                 , fast-logger                   >= 2.2        && < 2.5
                  , wai-logger                    >= 2.2        && < 2.3
                  , file-embed
                  , safe
@@ -544,13 +544,13 @@ library
                  , vector
                  , time
 
-executable         PROJECTNAME
+executable         {{name}}
     if flag(library-only)
         Buildable: False
 
     main-is:           main.hs
     hs-source-dirs:    app
-    build-depends:     base, PROJECTNAME
+    build-depends:     base, {{name}}
 
     ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
 
@@ -578,7 +578,7 @@ test-suite test
                 TupleSections
 
     build-depends: base
-                 , PROJECTNAME
+                 , {{name}}
                  , yesod-test >= 1.4.3 && < 1.5
                  , yesod-core
                  , yesod
@@ -853,7 +853,7 @@ modifyStoredIORef store f = withStore store $ \ref -> do
 
 {-# START_FILE app/devel.hs #-}
 {-# LANGUAGE PackageImports #-}
-import "PROJECTNAME" Application (develMain)
+import "{{name}}" Application (develMain)
 import Prelude (IO)
 
 main :: IO ()
@@ -907,7 +907,7 @@ stanzas:
 
     # Name of your executable. You are unlikely to need to change this.
     # Note that all file paths are relative to the keter.yml file.
-    exec: ../dist/build/PROJECTNAME/PROJECTNAME
+    exec: ../dist/build/{{name}}/{{name}}
 
     # Command line options passed to your application.
     args: []
@@ -916,7 +916,7 @@ stanzas:
       # You can specify one or more hostnames for your application to respond
       # to. The primary hostname will be used for generating your application
       # root.
-      - www.PROJECTNAME.com
+      - www.{{name}}.com
 
     # Enable to force Keter to redirect to https
     # Can be added to any stanza
@@ -925,7 +925,7 @@ stanzas:
   # Static files.
   - type: static-files
     hosts:
-      - static.PROJECTNAME.com
+      - static.{{name}}.com
     root: ../static
 
     # Uncomment to turn on directory listings.
@@ -935,9 +935,9 @@ stanzas:
   - type: redirect
 
     hosts:
-      - PROJECTNAME.com
+      - {{name}}.com
     actions:
-      - host: www.PROJECTNAME.com
+      - host: www.{{name}}.com
         # secure: false
         # port: 80
 
@@ -1007,10 +1007,10 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # skip-combining: false
 
 database:
-  user:        "PROJECTNAME"
-  password:    "PROJECTNAME"
+  user:        "{{name}}"
+  password:    "{{name}}"
   host:        "localhost"
-  database:    "PROJECTNAME"
+  database:    "{{name}}"
   connections: 10
 
 copyright: Insert copyright statement here
@@ -1018,7 +1018,7 @@ copyright: Insert copyright statement here
 
 {-# START_FILE config/test-settings.yml #-}
 database:
-  database: PROJECTNAME_test
+  database: {{name}}_test
 
 {-# START_FILE static/css/bootstrap.css #-}
 /*!
