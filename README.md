@@ -31,7 +31,7 @@ have the parameters provided in, it will warn the user that such
 parameters were missing, like this:
 
 ```
-$ stack new foo
+$ stack new foo new-template
 Downloading template "new-template" to create project "foo" in foo/ ...
 The following parameters were needed by the template but not provided: author-email, author-name
 You can provide them in /home/chris/.stack/stack.yaml, like this:
