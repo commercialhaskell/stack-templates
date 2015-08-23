@@ -1,0 +1,327 @@
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+synopsis:            Hakyll project template from stack
+description:         Please see README.md
+homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}2010 Author Here{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+build-type:          Simple
+cabal-version:       >=1.10
+
+executable {{name}}
+  hs-source-dirs:      src
+  main-is:             site.hs
+  default-language:    Haskell2010
+  ghc-options:         -threaded
+  build-depends:       base == 4.*,
+                       hakyll == 4.6.*
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE .gitignore #-}
+# Created by https://www.gitignore.io/api/haskell
+
+### Haskell ###
+dist
+cabal-dev
+*.o
+*.hi
+*.chi
+*.chs.h
+*.dyn_o
+*.dyn_hi
+.hpc
+.hsenv
+.cabal-sandbox/
+cabal.sandbox.config
+*.prof
+*.aux
+*.hp
+.stack-work/
+
+{-# START_FILE src/site.hs #-}
+--------------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
+import           Data.Monoid (mappend)
+import           Hakyll
+
+
+--------------------------------------------------------------------------------
+main :: IO ()
+main = hakyll $ do
+    match "images/*" $ do
+        route   idRoute
+        compile copyFileCompiler
+
+    match "css/*" $ do
+        route   idRoute
+        compile compressCssCompiler
+
+    match (fromList ["about.rst", "contact.markdown"]) $ do
+        route   $ setExtension "html"
+        compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= relativizeUrls
+
+    match "posts/*" $ do
+        route $ setExtension "html"
+        compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/post.html"    postCtx
+            >>= loadAndApplyTemplate "templates/default.html" postCtx
+            >>= relativizeUrls
+
+    create ["archive.html"] $ do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll "posts/*"
+            let archiveCtx =
+                    listField "posts" postCtx (return posts) `mappend`
+                    constField "title" "Archives"            `mappend`
+                    defaultContext
+
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/archive.html" archiveCtx
+                >>= loadAndApplyTemplate "templates/default.html" archiveCtx
+                >>= relativizeUrls
+
+
+    match "index.html" $ do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll "posts/*"
+            let indexCtx =
+                    listField "posts" postCtx (return posts) `mappend`
+                    constField "title" "Home"                `mappend`
+                    defaultContext
+
+            getResourceBody
+                >>= applyAsTemplate indexCtx
+                >>= loadAndApplyTemplate "templates/default.html" indexCtx
+                >>= relativizeUrls
+
+    match "templates/*" $ compile templateCompiler
+
+
+--------------------------------------------------------------------------------
+postCtx :: Context String
+postCtx =
+    dateField "date" "%B %e, %Y" `mappend`
+    defaultContext
+
+
+{-# START_FILE index.html #-}
+---
+title: Home
+---
+
+<h2>Welcome</h2>
+
+<p>Welcome to my blog!</p>
+
+<p>I've reproduced a list of recent posts here for your reading pleasure:</p>
+
+<h2>Posts</h2>
+$partial("templates/post-list.html")$
+
+<p>…or you can find more in the <a href="/archive.html">archives</a>.</p>
+
+{-# START_FILE templates/archive.html #-}
+Here you can find all my previous posts:
+$partial("templates/post-list.html")$
+
+{-# START_FILE templates/default.html #-}
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <title>My Hakyll Blog - $title$</title>
+        <link rel="stylesheet" type="text/css" href="/css/default.css" />
+    </head>
+    <body>
+        <div id="header">
+            <div id="logo">
+                <a href="/">My Hakyll Blog</a>
+            </div>
+            <div id="navigation">
+                <a href="/">Home</a>
+                <a href="/about.html">About</a>
+                <a href="/contact.html">Contact</a>
+                <a href="/archive.html">Archive</a>
+            </div>
+        </div>
+
+        <div id="content">
+            <h1>$title$</h1>
+
+            $body$
+        </div>
+        <div id="footer">
+            Site proudly generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
+        </div>
+    </body>
+</html>
+
+{-# START_FILE templates/post.html #-}
+<div class="info">
+    Posted on $date$
+    $if(author)$
+        by $author$
+    $endif$
+</div>
+
+$body$
+
+{-# START_FILE templates/post-list.html #-}
+<ul>
+    $for(posts)$
+        <li>
+            <a href="$url$">$title$</a> - $date$
+        </li>
+    $endfor$
+</ul>
+
+{-# START_FILE contact.markdown #-}
+---
+title: Contact
+---
+
+I live in a small hut in the mountains of Kumano Kodō on Kii Hantō and would not
+like to be contacted.
+
+{-# START_FILE posts/2015-08-23-example.markdown #-}
+---
+title: example post
+---
+
+Mauris in lorem nisl. Maecenas tempus facilisis ante, eget viverra nisl
+tincidunt et. Donec turpis lectus, mattis ac malesuada a, accumsan eu libero.
+Morbi condimentum, tortor et tincidunt ullamcorper, sem quam pretium nulla, id
+convallis lectus libero nec turpis. Proin dapibus nisi id est sodales nec
+ultrices tortor pellentesque. 
+
+Vivamus vel nisi ac lacus sollicitudin vulputate
+ac ut ligula. Nullam feugiat risus eget eros gravida in molestie sapien euismod.
+Nunc sed hendrerit orci. Nulla mollis consequat lorem ac blandit. Ut et turpis
+mauris. Nulla est odio, posuere id ullamcorper sit amet, tincidunt vel justo.
+Curabitur placerat tincidunt varius. Nulla vulputate, ipsum eu consectetur
+mollis, dui nibh aliquam neque, at ultricies leo ligula et arcu.
+
+{-# START_FILE about.rst #-}
+---
+title: About
+---
+Nullam imperdiet sodales orci vitae molestie. Nunc quam orci, pharetra a
+rhoncus vitae, eleifend id felis. Suspendisse potenti. Etiam vitae urna orci.
+Quisque pellentesque dignissim felis, egestas tempus urna luctus vitae. In hac
+habitasse platea dictumst. Morbi fringilla mattis odio, et mattis tellus
+accumsan vitae.
+
+1. Amamus Unicode 碁
+2. Interdum nex magna.
+
+Vivamus eget mauris sit amet nulla laoreet lobortis. Nulla in diam elementum
+risus convallis commodo. Cras vehicula varius dui vitae facilisis. Proin
+elementum libero eget leo aliquet quis euismod orci vestibulum. Duis rhoncus
+lorem consequat tellus vestibulum aliquam. Quisque orci orci, malesuada porta
+blandit et, interdum nec magna.
+
+{-# START_FILE css/default.css #-}
+body {
+    color: black;
+    font-size: 16px;
+    margin: 0px auto 0px auto;
+    width: 600px;
+}
+
+div#header {
+    border-bottom: 2px solid black;
+    margin-bottom: 30px;
+    padding: 12px 0px 12px 0px;
+}
+
+div#logo a {
+    color: black;
+    float: left;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+div#header #navigation {
+    text-align: right;
+}
+
+div#header #navigation a {
+    color: black;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 12px;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+div#footer {
+    border-top: solid 2px black;
+    color: #555;
+    font-size: 12px;
+    margin-top: 30px;
+    padding: 12px 0px 12px 0px;
+    text-align: right;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+h2 {
+    font-size: 20px;
+}
+
+div.info {
+    color: #555;
+    font-size: 14px;
+    font-style: italic;
+}
+
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}} (c) 2015
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
