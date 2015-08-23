@@ -19,11 +19,7 @@ executable {{name}}
   default-language:    Haskell2010
   ghc-options:         -threaded
   build-depends:       base == 4.*,
-                       hakyll == 4.6.*
-
-{-# START_FILE Setup.hs #-}
-import Distribution.Simple
-main = defaultMain
+                       hakyll == 4.7.*
 
 {-# START_FILE .gitignore #-}
 # Created by https://www.gitignore.io/api/haskell
@@ -45,6 +41,10 @@ cabal.sandbox.config
 *.aux
 *.hp
 .stack-work/
+
+{-# START_FILE .ghci #-}
+:set -XOverloadedStrings
+import           Hakyll
 
 {-# START_FILE src/site.hs #-}
 --------------------------------------------------------------------------------
