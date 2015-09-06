@@ -45,7 +45,7 @@ source-repository head
 import Distribution.Simple
 main = defaultMain
 
-{-# START_FILE src/test/Main.hs #-}
+{-# START_FILE test/Spec.hs #-}
 main :: IO ()
 main = putStrLn "Test suite not yet implemented"
 
@@ -57,7 +57,7 @@ module Lib
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
-{-# START_FILE src/main/Main.hs #-}
+{-# START_FILE app/Main.hs #-}
 module Main where
 
 import Lib
