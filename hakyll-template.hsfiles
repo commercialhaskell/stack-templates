@@ -46,7 +46,7 @@ cabal.sandbox.config
 :set -XOverloadedStrings
 import           Hakyll
 
-{-# START_FILE src/site.hs #-}
+{-# START_FILE site.hs #-}
 --------------------------------------------------------------------------------
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Monoid (mappend)
