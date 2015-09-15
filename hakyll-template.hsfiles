@@ -40,6 +40,8 @@ cabal.sandbox.config
 *.aux
 *.hp
 .stack-work/
+_cache/
+_site/
 
 {-# START_FILE .ghci #-}
 :set -XOverloadedStrings
