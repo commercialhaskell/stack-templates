@@ -3,7 +3,7 @@ See: https://github.com/commercialhaskell/stack
 
 ## Introduction
 
-Project templates are written in hsfiles format, using mustache. Each
+Project templates are written in hsfiles format, using [mustache](https://mustache.github.io/mustache.1.html). Each
 file is specified with `START_FILE`, like this:
 
 ```
