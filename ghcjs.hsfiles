@@ -47,8 +47,8 @@ module Lib
     ( someFunc
     ) where
 
+import GHCJS.Foreign ()
 import GHCJS.Types
-import GHCJS.Foreign
 
 foreign import javascript unsafe "window.alert($1)" js_alert :: JSString -> IO ()
 
