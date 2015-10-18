@@ -1,0 +1,120 @@
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+license:             ISC
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}2015 Author Here{{/copyright}}
+category:            {{category}}{{^category}}Development{{/category}}
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+  build-depends:       base >=4.7 && < 5
+  default-language:    Haskell2010
+
+executable {{name}}-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base >=4.7 && <5
+                     , {{name}}
+  default-language:    Haskell2010
+
+test-suite {{name}}-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base     >=4.7 && <5
+                     , {{name}} -any
+                     , hspec    ==2.*
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite style
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             HLint.hs
+  build-depends:       base  >=4.7 && <5
+                     , hlint ==1.*
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE CHANGELOG.md #-}
+# Changelog
+
+This package uses [Semantic Versioning][1].
+
+## v0.1.0.0
+
+-   Initially created.
+
+[1]: http://semver.org/spec/v2.0.0.html
+
+{-# START_FILE test/Spec.hs #-}
+main :: IO ()
+main = putStrLn "Test suite not yet implemented"
+
+{-# START_FILE test/HLint.hs #-}
+module Main (main) where
+
+import Language.Haskell.HLint (hlint)
+import System.Exit (exitFailure, exitSuccess)
+
+arguments :: [String]
+arguments =
+    [ "app"
+    , "src"
+    , "test"
+    ]
+
+main :: IO ()
+main = do
+    hints <- hlint arguments
+    if null hints then exitSuccess else exitFailure
+
+{-# START_FILE src/Lib.hs #-}
+module Lib
+    ( someFunc
+    ) where
+
+someFunc :: IO ()
+someFunc = putStrLn "someFunc"
+
+{-# START_FILE app/Main.hs #-}
+module Main where
+
+import Lib
+
+main :: IO ()
+main = someFunc
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) 2015
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
