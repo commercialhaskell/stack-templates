@@ -7,7 +7,7 @@ build-type:    Simple
 executable          {{name}}
     hs-source-dirs: .
     main-is:        Main.hs
-    ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
+    ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5
                   , scotty >= 0.10.0 && < 0.11
@@ -17,8 +17,7 @@ executable          {{name}}
 
 import Web.Scotty
 
-import Data.Monoid (mconcat)
-
+main :: IO ()
 main = scotty 3000 $ do
   get "/:word" $ do
     beam <- param "word"
