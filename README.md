@@ -14,7 +14,7 @@ version:             0.1.0.0
 ```
 
 Parameters to the template are written `{{foo}}`. They are provided by
-users via their `~/.stack/stack.yaml` file, like this:
+users via their `~/.stack/config.yaml` file, like this:
 
 ``` yaml
 templates:
