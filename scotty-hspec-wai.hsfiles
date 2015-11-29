@@ -1,0 +1,165 @@
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}2010 Author Here{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Example
+  build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , scotty
+                     , wai
+  default-language:    Haskell2010
+
+executable {{name}}-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -O2 -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , {{name}}
+  default-language:    Haskell2010
+
+test-suite {{name}}-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , {{name}}
+                     , hspec
+                     , hspec-wai
+                     , hspec-wai-json
+                     , aeson
+  ghc-options:         -threaded -O2 -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+
+main = defaultMain
+
+{-# START_FILE test/Spec.hs #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
+module Main (main) where
+
+import           Test.Hspec
+import           Test.Hspec.Wai
+import           Test.Hspec.Wai.JSON
+import           Data.Aeson (Value(..), object, (.=))
+
+import           Example (app)
+
+main :: IO ()
+main = hspec spec
+
+spec :: Spec
+spec = with app $ do
+  describe "GET /" $ do
+    it "responds with 200" $ do
+      get "/" `shouldRespondWith` 200
+
+    it "responds with 'hello'" $ do
+      get "/" `shouldRespondWith` "hello"
+
+    it "responds with 200 / 'hello'" $ do
+      get "/" `shouldRespondWith` "hello" {matchStatus = 200}
+
+    it "has 'Content-Type: text/plain; charset=utf-8'" $ do
+      get "/" `shouldRespondWith` 200 {matchHeaders = ["Content-Type" <:> "text/plain; charset=utf-8"]}
+
+  describe "GET /some-json" $ do
+    it "responds with some JSON" $ do
+      get "/some-json" `shouldRespondWith` [json|{foo: 23, bar: 42}|]
+
+{-# START_FILE src/Example.hs #-}
+{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
+module Example (runApp, app) where
+
+import           Data.Aeson (Value(..), object, (.=))
+import           Network.Wai (Application)
+import qualified Web.Scotty as S
+
+app' :: S.ScottyM ()
+app' = do
+  S.get "/" $ do
+    S.text "hello"
+
+  S.get "/some-json" $ do
+    S.json $ object ["foo" .= Number 23, "bar" .= Number 42]
+
+app :: IO Application
+app = S.scottyApp app'
+
+runApp :: IO ()
+runApp = S.scotty 8080 app'
+
+{-# START_FILE app/Main.hs #-}
+module Main where
+
+import           Example (runApp)
+
+main :: IO ()
+main = runApp
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) 2015
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .ghci #-}
+:set -XOverloadedStrings
+:set -XQuasiQuotes
+
+{-# START_FILE .gitignore #-}
+dist*
+*.hi
+*.o
+.hsenv*
+.stack-work/
+.cabal-sandbox
+cabal.sandbox.config
+.DS_Store
+*.swp
+*.keter
