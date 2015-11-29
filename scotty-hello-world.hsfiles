@@ -1,0 +1,37 @@
+{-# START_FILE {{name}}.cabal #-}
+name:          {{name}}
+version:       0.0.0
+cabal-version: >= 1.8
+build-type:    Simple
+
+executable          {{name}}
+    hs-source-dirs: .
+    main-is:        Main.hs
+    ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
+    extensions:     OverloadedStrings
+    build-depends:  base   >= 4      && < 5
+                  , scotty >= 0.10.0 && < 0.11
+
+{-# START_FILE Main.hs #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+import Web.Scotty
+
+main :: IO ()
+main = scotty 3000 $ do
+  get "/:word" $ do
+    beam <- param "word"
+    html $ mconcat ["<h1>Scotty, ", beam, " me up!</h1>"]
+
+{-# START_FILE .ghci #-}
+:set -XOverloadedStrings
+
+{-# START_FILE .gitignore #-}
+*.hi
+*.o
+.stack-work/
+.cabal-sandbox
+cabal.sandbox.config
+.DS_Store
+*.swp
+*.keter
