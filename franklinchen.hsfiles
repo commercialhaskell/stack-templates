@@ -1,0 +1,177 @@
+{-# START_FILE README.md #-}
+# {{name}}
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+TODO Description.
+
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+synopsis:            TODO Initial project template from stack
+description:         Please see README.md
+homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}2010 Author Here{{/copyright}}
+category:            {{category}}{{^category}}Acme{{/category}}
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+tested-with:         GHC == 7.10.2
+
+library
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+  build-depends:       base >= 4.7 && < 5
+
+executable {{name}}
+  default-language:    Haskell2010
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  build-depends:       base
+                     , {{name}}
+
+test-suite spec
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Spec.hs
+  build-depends:       base
+                     , {{name}}
+                     , hspec
+                     , QuickCheck
+                     
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE .gitignore #-}
+/dist/
+/.cabal-sandbox/
+/cabal.sandbox.config
+/.stack-work/
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE test/Spec.hs #-}
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+
+{-# START_FILE test/LibSpec.hs #-}
+module LibSpec where
+
+import Test.Hspec
+import Test.Hspec.QuickCheck
+
+import Lib (ourAdd)
+
+main :: IO ()
+main = hspec spec
+
+spec :: Spec
+spec =
+  describe "Lib" $ do
+    it "works" $ do
+      True `shouldBe` True
+    prop "ourAdd is commutative" $ \x y ->
+      ourAdd x y `shouldBe` ourAdd y x
+
+{-# START_FILE src/Lib.hs #-}
+-- | A library to do stuff.
+module Lib
+    ( 
+      ourAdd
+    ) where
+
+-- | Add two 'Int' values.
+ourAdd :: Int  -- ^ left
+       -> Int  -- ^ right
+       -> Int  -- ^ sum
+ourAdd x y = x + y
+{-# START_FILE app/Main.hs #-}
+module Main where
+
+import Lib (ourAdd)
+
+import Text.Printf (printf)
+
+main :: IO ()
+main = printf "2 + 3 = %d\n" (ourAdd 2 3)
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}} (c) 2015
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .travis.yml #-}
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Choose a lightweight base image; we provide our own build tools.
+language: c
+
+# GHC depends on GMP. You can add other dependencies here as well.
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+
+# The different configurations we want to test. You could also do things like
+# change flags or use --stack-yaml to point to a different file.
+env:
+- ARGS=""
+#- ARGS="--resolver lts-2"
+- ARGS="--resolver lts-3"
+- ARGS="--resolver lts"
+- ARGS="--resolver nightly"
+
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+# This line does all of the work: installs GHC if necessary, build the library,
+# executables, and test suites, and runs the test suites. --no-terminal works
+# around some quirks in Travis's terminal implementation.
+script: stack $ARGS --no-terminal --install-ghc test --haddock
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
