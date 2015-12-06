@@ -51,6 +51,7 @@ module Application
     , appMain
     , develMain
     , makeFoundation
+    , makeLogWare
     -- * for DevelMain
     , getApplicationRepl
     , shutdownApp
@@ -64,6 +65,7 @@ import Database.Persist.Sqlite              (createSqlitePool, runSqlPool,
                                              sqlDatabase, sqlPoolSize)
 import Import
 import Language.Haskell.TH.Syntax           (qLocation)
+import Network.Wai (Middleware)
 import Network.Wai.Handler.Warp             (Settings, defaultSettings,
                                              defaultShouldDisplayException,
                                              runSettings, setHost,
@@ -79,6 +81,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 -- Don't forget to add new modules to your cabal file!
 import Handler.Common
 import Handler.Home
+import Handler.Comment
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -126,7 +129,14 @@ makeFoundation appSettings = do
 -- applying some additional middlewares.
 makeApplication :: App -> IO Application
 makeApplication foundation = do
-    logWare <- mkRequestLogger def
+    logWare <- makeLogWare foundation
+    -- Create the WAI application and apply middlewares
+    appPlain <- toWaiAppPlain foundation
+    return $ logWare $ defaultMiddlewaresNoLogging appPlain
+
+makeLogWare :: App -> IO Middleware
+makeLogWare foundation =
+    mkRequestLogger def
         { outputFormat =
             if appDetailedRequestLogging $ appSettings foundation
                 then Detailed True
@@ -137,9 +147,6 @@ makeApplication foundation = do
         , destination = Logger $ loggerSet $ appLogger foundation
         }
 
-    -- Create the WAI application and apply middlewares
-    appPlain <- toWaiAppPlain foundation
-    return $ logWare $ defaultMiddlewaresNoLogging appPlain
 
 -- | Warp settings for the given foundation value.
 warpSettings :: App -> Settings
@@ -232,6 +239,8 @@ import Yesod.Auth.Message   (AuthMessage (InvalidLogin))
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
 import qualified Yesod.Core.Unsafe as Unsafe
+import qualified Data.CaseInsensitive as CI
+import qualified Data.Text.Encoding as TE
 
 -- | The foundation datatype for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -245,16 +254,14 @@ data App = App
     , appLogger      :: Logger
     }
 
-instance HasHttpManager App where
-    getHttpManager = appHttpManager
-
 -- This is where we define all of the routes in our application. For a full
 -- explanation of the syntax, please see:
 -- http://www.yesodweb.com/book/routing-and-handlers
 --
 -- Note that this is really half the story; in Application.hs, mkYesodDispatch
--- generates the rest of the code. Please see the linked documentation for an
--- explanation for this split.
+-- generates the rest of the code. Please see the following documentation
+-- for an explanation for this split:
+-- http://www.yesodweb.com/book/scaffolding-and-the-site-template#scaffolding-and-the-site-template_foundation_and_application_modules
 --
 -- This function also generates the following type synonyms:
 -- type Handler = HandlerT App IO
@@ -269,13 +276,24 @@ type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
 instance Yesod App where
     -- Controls the base of generated URLs. For more information on modifying,
     -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
-    approot = ApprootMaster $ appRoot . appSettings
+    approot = ApprootRequest $ \app req ->
+        case appRoot $ appSettings app of
+            Nothing -> getApprootText guessApproot app req
+            Just root -> root
 
     -- Store session data on the client in encrypted cookies,
     -- default session idle timeout is 120 minutes
     makeSessionBackend _ = Just <$> defaultClientSessionBackend
         120    -- timeout in minutes
         "config/client_session_key.aes"
+
+    -- Yesod Middleware allows you to run code before and after each handler function.
+    -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
+    -- The defaultCsrfMiddleware:
+    --   a) Sets a cookie with a CSRF token in it.
+    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
+    -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
+    yesodMiddleware = defaultCsrfMiddleware . defaultYesodMiddleware
 
     defaultLayout widget = do
         master <- getYesod
@@ -367,6 +385,12 @@ instance YesodAuthPersist App
 instance RenderMessage App FormMessage where
     renderMessage _ _ = defaultFormMessage
 
+-- Useful when writing code that is re-usable outside of the Handler context.
+-- An example is background jobs that send email.
+-- This can also be useful for writing code that works across multiple Yesod applications.
+instance HasHttpManager App where
+    getHttpManager = appHttpManager
+
 unsafeHandler :: App -> Handler a -> IO a
 unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 
@@ -377,6 +401,24 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Sending-email
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
+
+{-# START_FILE Handler/Comment.hs #-}
+module Handler.Comment where
+
+import Import
+
+postCommentR :: Handler Value
+postCommentR = do
+    -- requireJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
+    -- (The ToJSON and FromJSON instances are derived in the config/models file).
+    comment <- (requireJsonBody :: Handler Comment)
+
+    -- The YesodAuth instance in Foundation.hs defines the UserId to be the type used for authentication.
+    maybeCurrentUserId <- maybeAuthId
+    let comment' = comment { commentUserId = maybeCurrentUserId }
+
+    insertedComment <- runDB $ insertEntity comment'
+    returnJson insertedComment
 
 {-# START_FILE Handler/Common.hs #-}
 -- | Common handler functions.
@@ -402,6 +444,7 @@ module Handler.Home where
 import Import
 import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3,
                               withSmallInput)
+import Text.Julius (RawJS (..))
 
 -- This is a handler function for the GET request method on the HomeR
 -- resource pattern. All of your resource patterns are defined in
@@ -416,6 +459,7 @@ getHomeR = do
     let submission = Nothing :: Maybe (FileInfo, Text)
         handlerName = "getHomeR" :: Text
     defaultLayout $ do
+        let (commentFormId, commentTextareaId, commentListId) = commentIds
         aDomId <- newIdent
         setTitle "Welcome To Yesod!"
         $(widgetFile "homepage")
@@ -429,6 +473,7 @@ postHomeR = do
             _ -> Nothing
 
     defaultLayout $ do
+        let (commentFormId, commentTextareaId, commentListId) = commentIds
         aDomId <- newIdent
         setTitle "Welcome To Yesod!"
         $(widgetFile "homepage")
@@ -437,6 +482,9 @@ sampleForm :: Form (FileInfo, Text)
 sampleForm = renderBootstrap3 BootstrapBasicForm $ (,)
     <$> fileAFormReq "Choose a file"
     <*> areq textField (withSmallInput "What's on the file?") Nothing
+
+commentIds :: (Text, Text, Text)
+commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
 
 {-# START_FILE Import.hs #-}
 module Import
@@ -460,6 +508,8 @@ import Yesod.Core.Types      as Import (loggerSet)
 import Yesod.Default.Config2 as Import
 
 {-# START_FILE Model.hs #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module Model where
 
 import ClassyPrelude.Yesod
@@ -497,6 +547,7 @@ library
                      Settings.StaticFiles
                      Handler.Common
                      Handler.Home
+                     Handler.Comment
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -508,7 +559,6 @@ library
                 QuasiQuotes
                 OverloadedStrings
                 NoImplicitPrelude
-                CPP
                 MultiParamTypeClasses
                 TypeFamilies
                 GADTs
@@ -524,7 +574,7 @@ library
 
     build-depends: base                          >= 4          && < 5
                  , yesod                         >= 1.4.1      && < 1.5
-                 , yesod-core                    >= 1.4.6      && < 1.5
+                 , yesod-core                    >= 1.4.17     && < 1.5
                  , yesod-auth                    >= 1.4.0      && < 1.5
                  , yesod-static                  >= 1.4.0.3    && < 1.6
                  , yesod-form                    >= 1.4.0      && < 1.5
@@ -546,7 +596,7 @@ library
                  , directory                     >= 1.1        && < 1.3
                  , warp                          >= 3.0        && < 3.2
                  , data-default
-                 , aeson                         >= 0.6        && < 0.10
+                 , aeson                         >= 0.6        && < 0.11
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
                  , fast-logger                   >= 2.2        && < 2.5
@@ -557,6 +607,8 @@ library
                  , containers
                  , vector
                  , time
+                 , case-insensitive
+                 , wai
 
 executable         {{name}}
     if flag(library-only)
@@ -566,7 +618,7 @@ executable         {{name}}
     hs-source-dirs:    app
     build-depends:     base, {{name}}
 
-    ghc-options:       -threaded -O2 -rtsopts -with-rtsopts=-N
+    ghc-options:       -threaded -rtsopts -with-rtsopts=-N
 
 test-suite test
     type:              exitcode-stdio-1.0
@@ -593,7 +645,7 @@ test-suite test
 
     build-depends: base
                  , {{name}}
-                 , yesod-test >= 1.4.3 && < 1.5
+                 , yesod-test >= 1.5.0.1 && < 1.6
                  , yesod-core
                  , yesod
                  , persistent
@@ -605,8 +657,10 @@ test-suite test
                  , hspec >= 2.0.0
                  , classy-prelude
                  , classy-prelude-yesod
+                 , aeson
 
 {-# START_FILE Settings.hs #-}
+{-# Language CPP #-}
 -- | Settings are centralized, as much as possible, into this file. This
 -- includes database connection settings, static file locations, etc.
 -- In addition, you can configure a number of different aspects of Yesod
@@ -635,8 +689,9 @@ data AppSettings = AppSettings
     -- ^ Directory from which to serve static files.
     , appDatabaseConf           :: SqliteConf
     -- ^ Configuration settings for accessing the database.
-    , appRoot                   :: Text
-    -- ^ Base for all generated URLs.
+    , appRoot                   :: Maybe Text
+    -- ^ Base for all generated URLs. If @Nothing@, determined
+    -- from the request headers.
     , appHost                   :: HostPreference
     -- ^ Host/interface the server should bind to.
     , appPort                   :: Int
@@ -673,7 +728,7 @@ instance FromJSON AppSettings where
 #endif
         appStaticDir              <- o .: "static-dir"
         appDatabaseConf           <- o .: "database"
-        appRoot                   <- o .: "approot"
+        appRoot                   <- o .:? "approot"
         appHost                   <- fromString <$> o .: "host"
         appPort                   <- o .: "port"
         appIpFromHeader           <- o .: "ip-from-header"
@@ -980,9 +1035,14 @@ User
     deriving Typeable
 Email
     email Text
-    user UserId Maybe
+    userId UserId Maybe
     verkey Text Maybe
     UniqueEmail email
+Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived.
+    message Text
+    userId UserId Maybe
+    deriving Eq
+    deriving Show
 
  -- By default this file is used in Model.hs (which is imported by Foundation.hs)
 
@@ -998,15 +1058,20 @@ User-agent: *
 
 / HomeR GET POST
 
+/comments CommentR POST
+
 {-# START_FILE config/settings.yml #-}
 # Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
 # See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
 
 static-dir:     "_env:STATIC_DIR:static"
 host:           "_env:HOST:*4" # any IPv4 host
-port:           "_env:PORT:3000"
-approot:        "_env:APPROOT:http://localhost:3000"
+port:           "_env:PORT:3000" # NB: The port `yesod devel` uses is distinct from this value. Set the `yesod devel` port from the command line.
 ip-from-header: "_env:IP_FROM_HEADER:false"
+
+# Default behavior: determine the application root from the request headers.
+# Uncomment to set an explicit approot
+#approot:        "_env:APPROOT:http://localhost:3000"
 
 # Optional values with the following production defaults.
 # In development, they default to the inverse.
@@ -1018,34 +1083,15 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # mutable-static: false
 # skip-combining: false
 
+# NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
+# See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
+
 database:
   database: "_env:SQLITE_DATABASE:{{name}}.sqlite3"
   poolsize: "_env:SQLITE_POOLSIZE:10"
 
 copyright: Insert copyright statement here
 #analytics: UA-YOURCODE
-
-{-# START_FILE config/sqlite.yml #-}
-Default: &defaults
-  database: {{name}}.sqlite3
-  poolsize: 10
-
-Development:
-  <<: *defaults
-
-Testing:
-  database: {{name}}_test.sqlite3
-  <<: *defaults
-
-Staging:
-  database: {{name}}_staging.sqlite3
-  poolsize: 100
-  <<: *defaults
-
-Production:
-  database: {{name}}_production.sqlite3
-  poolsize: 100
-  <<: *defaults
 
 {-# START_FILE config/test-settings.yml #-}
 database:
@@ -9005,6 +9051,26 @@ $newline never
     \<!--[if lt IE 9]>
     \<script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     \<![endif]-->
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js">
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.3/js.cookie.min.js">
+
+    <script>
+      /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
+      /* AJAX requests should add that token to a header to be validated by the server. */
+      /* See the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package for details. */
+      var csrfHeaderName = "#{TE.decodeUtf8 $ CI.foldedCase defaultCsrfHeaderName}";
+
+      var csrfCookieName = "#{TE.decodeUtf8 defaultCsrfCookieName}";
+      var csrfToken = Cookies.get(csrfCookieName);
+
+
+      if (csrfToken) {
+      \  $.ajaxPrefilter(function( options, originalOptions, jqXHR ) {
+      \      if (!options.crossDomain) {
+      \          jqXHR.setRequestHeader(csrfHeaderName, csrfToken);
+      \      }
+      \  });
+      }
 
     <script>
       document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js');
@@ -9033,34 +9099,47 @@ $maybe msg <- mmsg
 ^{widget}
 
 {-# START_FILE templates/homepage.hamlet #-}
-<h1>Welcome to Yesod!
+<h1.jumbotron>
+  Welcome to Yesod!
 
-<ol>
-  <li>Now that you have a working project you should use the #
-    \<a href="http://www.yesodweb.com/book/">Yesod book<span class="glyphicon glyphicon-book"></span></a> to learn more. #
+<.page-header><h2>Starting
+
+<section.list-group>
+  <span .list-group-item>
+    Now that you have a working project you should use the
+    <a href=http://www.yesodweb.com/book/>
+      Yesod book <span class="glyphicon glyphicon-book"></span>
+    to learn more.
     You can also use this scaffolded site to explore some basic concepts.
 
-  <li> This page was generated by the #{handlerName} handler in #
-    \<em>Handler/Home.hs</em>.
+  <span .list-group-item>
+    This page was generated by the <tt>#{handlerName}</tt> handler in
+    <tt>Handler/Home.hs</tt>.
 
-  <li> The #{handlerName} handler is set to generate your site's home screen in Routes file #
-    <em>config/routes
+  <span .list-group-item>
+    The <tt>#{handlerName}</tt> handler is set to generate your
+    site's home screen in Routes file
+    <tt>config/routes
 
-  <li> The HTML you are seeing now is actually composed by a number of <em>widgets</em>, #
-    most of them are brought together by the <em>defaultLayout</em> function which #
-    is defined in the <em>Foundation.hs</em> module, and used by <em>#{handlerName}</em>. #
-    All the files for templates and wigdets are in <em>templates</em>.
+  <span .list-group-item>
+    The HTML you are seeing now is actually composed by a number of <em>widgets</em>, #
+    most of them are brought together by the <tt>defaultLayout</tt> function which #
+    is defined in the <tt>Foundation.hs</tt> module, and used by <tt>#{handlerName}</tt>. #
+    All the files for templates and wigdets are in <tt>templates</tt>.
 
-  <li>
-    A Widget's Html, Css and Javascript are separated in three files with the #
-    \<em>.hamlet</em>, <em>.lucius</em> and <em>.julius</em> extensions.
+  <span .list-group-item>
+    A Widget's Html, Css and Javascript are separated in three files with the
+    <tt>.hamlet</tt>, <tt>.lucius</tt> and <tt>.julius</tt> extensions.
 
-  <li ##{aDomId}>If you had javascript enabled then you wouldn't be seeing this.
+  <span .list-group-item ##{aDomId}>
+    If you had javascript enabled then you wouldn't be seeing this.
 
-  <hr />
-  <li #form>
-    This is an example trivial Form. Read the #
-    \<a href="http://www.yesodweb.com/book/forms">Forms chapter<span class="glyphicon glyphicon-bookmark"></span></a> #
+<section.page-header>
+  <h2>Forms
+
+  <div>
+    This is an example trivial Form. Read the
+    <a href="http://www.yesodweb.com/book/forms">Forms chapter<span class="glyphicon glyphicon-bookmark"></span></a> #
     on the yesod book to learn more about them.
     $maybe (info,con) <- submission
       <div .message .alert .alert-success>
@@ -9069,14 +9148,66 @@ $maybe msg <- mmsg
       ^{formWidget}
       <button .btn .btn-primary type="submit">
          Send it! <span class="glyphicon glyphicon-upload"></span>
-  <hr />
 
-  <li> And last but not least, Testing. In <em>test/Spec.hs</em> you will find a #
+<section.page-header>
+  <h2>JSON
+
+  <p>
+    Yesod has JSON support baked-in.
+    The form below makes an AJAX request with Javascript,
+    then updates the page with your submission.
+    (see <tt>Handler/Comment.hs</tt>, <tt>templates/homepage.julius</tt>,
+    and <tt>Handler/Home.hs</tt> for the implementation).
+    <form ##{commentFormId}>
+      <.form-group>
+        <textarea ##{commentTextareaId} placeholder="Your comment here..." required></textarea>
+      <button .btn .btn-primary type="submit">
+        Create comment
+
+    <ul ##{commentListId}>
+
+<section.page-header>
+  <h2>Testing
+
+  <p>
+    And last but not least, Testing. In <tt>test/Spec.hs</tt> you will find a #
     test suite that performs tests on this page. #
     You can run your tests by doing: <pre>yesod test</pre>
 
 {-# START_FILE templates/homepage.julius #-}
 document.getElementById(#{toJSON aDomId}).innerHTML = "This text was added by the Javascript part of the homepage widget.";
+
+$(function() {
+  $("##{rawJS commentFormId}").submit(function(event) {
+    event.preventDefault();
+
+    var message = $("##{rawJS commentTextareaId}").val();
+    // (Browsers that enforce the "required" attribute on the textarea won't see this alert)
+    if (!message) {
+      alert("Please fill out the comment form first.");
+      return;
+    }
+
+    // Make an AJAX request to the server to create a new comment
+    $.ajax({
+      url: '@{CommentR}',
+      type: 'POST',
+      contentType: "application/json",
+      data: JSON.stringify({
+        message: message,
+      }),
+      success: function (data) {
+        var newNode = $("<li></li>");
+        newNode.text(data.message);
+        $("##{rawJS commentListId}").append(newNode);
+      },
+      error: function (data) {
+        console.log("Error creating comment: " + data);
+      },
+    });
+
+  });
+});
 
 {-# START_FILE templates/homepage.lucius #-}
 h1 {
@@ -9099,6 +9230,54 @@ footer {
 .input-sm {
     margin-left: 20px
 }
+
+##{commentTextareaId} {
+    width: 400px;
+    height: 100px;
+}
+
+{-# START_FILE test/Handler/CommentSpec.hs #-}
+module Handler.CommentSpec (spec) where
+
+import TestImport
+import Data.Aeson
+
+spec :: Spec
+spec = withApp $ do
+    describe "valid request" $ do
+        it "gives a 200" $ do
+            get HomeR
+            statusIs 200
+
+            let message = "My message" :: Text
+                body = object [ "message" .= message ]
+                encoded = encode body
+
+            request $ do
+                setMethod "POST"
+                setUrl CommentR
+                setRequestBody encoded
+                addRequestHeader ("Content-Type", "application/json")
+                addTokenFromCookie
+            
+            statusIs 200
+
+            [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
+            assertEqual "Should have " comment (Comment message Nothing)
+
+    describe "invalid requests" $ do
+        it "400s when the JSON body is invalid" $ do
+            get HomeR
+
+            let body = object [ "foo" .= ("My message" :: Value) ]
+            request $ do
+                setMethod "POST"
+                setUrl CommentR
+                setRequestBody $ encode body
+                addRequestHeader ("Content-Type", "application/json")
+                addTokenFromCookie
+            statusIs 400
+
 
 {-# START_FILE test/Handler/CommonSpec.hs #-}
 module Handler.CommonSpec (spec) where
@@ -9162,7 +9341,7 @@ module TestImport
     , module X
     ) where
 
-import Application           (makeFoundation)
+import Application           (makeFoundation, makeLogWare)
 import ClassyPrelude         as X
 import Database.Persist      as X hiding (get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
@@ -9185,7 +9364,7 @@ runDB query = do
     pool <- fmap appConnPool getTestYesod
     liftIO $ runSqlPersistMPool query pool
 
-withApp :: SpecWith App -> Spec
+withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
     settings <- loadAppSettings
         ["config/test-settings.yml", "config/settings.yml"]
@@ -9193,7 +9372,8 @@ withApp = before $ do
         ignoreEnv
     foundation <- makeFoundation settings
     wipeDB foundation
-    return foundation
+    logWare <- liftIO $ makeLogWare foundation
+    return (foundation, logWare)
 
 -- This function will truncate all of the tables in your database.
 -- 'withApp' calls it before each test, creating a clean environment for each

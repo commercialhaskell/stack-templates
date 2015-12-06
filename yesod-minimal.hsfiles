@@ -90,6 +90,24 @@ mkYesodData "App" $(parseRoutesFile "routes")
 
 instance Yesod App
 
+{-# START_FILE Handler/Comment.hs #-}
+module Handler.Comment where
+
+import Import
+
+postCommentR :: Handler Value
+postCommentR = do
+    -- requireJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
+    -- (The ToJSON and FromJSON instances are derived in the config/models file).
+    comment <- (requireJsonBody :: Handler Comment)
+
+    -- The YesodAuth instance in Foundation.hs defines the UserId to be the type used for authentication.
+    maybeCurrentUserId <- maybeAuthId
+    let comment' = comment { commentUserId = maybeCurrentUserId }
+
+    insertedComment <- runDB $ insertEntity comment'
+    returnJson insertedComment
+
 {-# START_FILE Home.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
@@ -141,4 +159,47 @@ executable          {{name}}
 {-# START_FILE routes #-}
 /              HomeR GET
 /add/#Int/#Int AddR  GET
+
+{-# START_FILE test/Handler/CommentSpec.hs #-}
+module Handler.CommentSpec (spec) where
+
+import TestImport
+import Data.Aeson
+
+spec :: Spec
+spec = withApp $ do
+    describe "valid request" $ do
+        it "gives a 200" $ do
+            get HomeR
+            statusIs 200
+
+            let message = "My message" :: Text
+                body = object [ "message" .= message ]
+                encoded = encode body
+
+            request $ do
+                setMethod "POST"
+                setUrl CommentR
+                setRequestBody encoded
+                addRequestHeader ("Content-Type", "application/json")
+                addTokenFromCookie
+            
+            statusIs 200
+
+            [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
+            assertEqual "Should have " comment (Comment message Nothing)
+
+    describe "invalid requests" $ do
+        it "400s when the JSON body is invalid" $ do
+            get HomeR
+
+            let body = object [ "foo" .= ("My message" :: Value) ]
+            request $ do
+                setMethod "POST"
+                setUrl CommentR
+                setRequestBody $ encode body
+                addRequestHeader ("Content-Type", "application/json")
+                addTokenFromCookie
+            statusIs 400
+
 
