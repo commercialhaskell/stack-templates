@@ -496,7 +496,7 @@ library
                  , yaml                          >= 0.8        && < 0.9
                  , http-conduit                  >= 2.1        && < 2.2
                  , directory                     >= 1.1        && < 1.3
-                 , warp                          >= 3.0        && < 3.2
+                 , warp                          >= 3.0        && < 3.3
                  , data-default
                  , aeson                         >= 0.6        && < 0.11
                  , conduit                       >= 1.0        && < 2.0
@@ -9036,7 +9036,7 @@ $maybe msg <- mmsg
   <p>
     And last but not least, Testing. In <tt>test/Spec.hs</tt> you will find a #
     test suite that performs tests on this page. #
-    You can run your tests by doing: <pre>yesod test</pre>
+    You can run your tests by doing: <pre>stack test</pre>
 
 {-# START_FILE templates/homepage.julius #-}
 document.getElementById(#{toJSON aDomId}).innerHTML = "This text was added by the Javascript part of the homepage widget.";
