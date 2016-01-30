@@ -1,0 +1,180 @@
+{-# START_FILE {{ name }}.cabal #-}
+name: {{ name }}
+version: 0.0.0
+cabal-version: >=1.10
+build-type: Simple
+license: MIT
+license-file: LICENSE.md
+maintainer: {{ author-name }}
+synopsis: TODO
+description:
+    <https://github.com/{{ github-username }}/{{ name }}#readme>
+category: TODO
+extra-source-files:
+    README.md
+    stack.yaml
+
+source-repository head
+    type: git
+    location: https://github.com/{{ github-username }}/{{ name }}
+
+library
+    exposed-modules:
+        Example
+    build-depends:
+        base ==4.8.*
+    default-language: Haskell2010
+    hs-source-dirs: library
+    ghc-options: -Wall
+
+executable {{ name }}
+    main-is: Executable.hs
+    build-depends:
+        base -any,
+        {{ name }} -any
+    default-language: Haskell2010
+    hs-source-dirs: executable
+    ghc-options: -threaded -Wall
+
+test-suite {{ name }}-test-suite
+    type: exitcode-stdio-1.0
+    main-is: TestSuite.hs
+    build-depends:
+        base -any,
+        {{ name }} -any,
+        tasty ==0.11.0.2,
+        tasty-hspec ==1.1.2
+    default-language: Haskell2010
+    hs-source-dirs: test-suite
+    ghc-options: -threaded -Wall -Werror
+
+benchmark {{ name }}-benchmark
+    type: exitcode-stdio-1.0
+    main-is: Benchmark.hs
+    build-depends:
+        base -any,
+        {{ name }} -any,
+        criterion ==1.1.0.0
+    default-language: Haskell2010
+    hs-source-dirs: benchmark
+    ghc-options: -threaded -Wall
+
+{-# START_FILE .gitignore #-}
+/.stack-work/
+
+{-# START_FILE CHANGELOG.md #-}
+# Change log
+
+{{ name }} uses [Semantic Versioning][].
+The change log is available [on GitHub][].
+
+[semantic versioning]: http://semver.org/spec/v2.0.0.html
+[on github]: https://github.com/{{ github-username }}/{{ name }}/releases
+
+{-# START_FILE LICENSE.md #-}
+The MIT License (MIT)
+
+Copyright (c) 2016 {{ author-name }}
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+{-# START_FILE README.md #-}
+# [{{ name }}][]
+
+Thanks for starting a project with Haskeleton! If you haven't heard of it
+before, I suggest reading the introductory blog post. You can find it here:
+<http://taylor.fausak.me/2014/03/04/haskeleton-a-haskell-project-skeleton/>.
+
+Before you get started, there are a few things that this template couldn't
+provide for you. You should:
+
+-   Add a synopsis to `{{ name }}.cabal`. It should be a short (one sentence)
+    explanation of your project.
+
+-   Add a category to `{{ name }}.cabal`. A list of categories is available on
+    Hackage at <http://hackage.haskell.org/packages>.
+
+-   Rename `library/Example.hs` to whatever you want your top-level module to
+    be called. Typically the is the same as your package name but in
+    `CamelCase` instead of `kebab-case`.
+
+    -   Don't forget to rename the reference to it in
+        `executable/Executable.hs`!
+
+Once you've done that, start working on your project with the Stack commands
+you know and love!
+
+``` sh
+# Build the project.
+stack build
+
+# Run the test suite.
+stack test
+
+# Run the benchmarks.
+stack bench
+
+# Generate documentation.
+stack haddock
+```
+
+Thanks again, and happy hacking!
+
+[{{ name }}]: https://github.com/{{ github-username }}/{{ name }}
+
+{-# START_FILE Setup.hs #-}
+import qualified Distribution.Simple
+
+main :: IO ()
+main = Distribution.Simple.defaultMain
+
+{-# START_FILE benchmark/Benchmark.hs #-}
+import Criterion
+import qualified Criterion.Main
+
+main :: IO ()
+main = Criterion.Main.defaultMain [bench "const" (whnf const ())]
+
+{-# START_FILE executable/Executable.hs #-}
+import qualified Example
+
+main :: IO ()
+main = Example.main
+
+{-# START_FILE library/Example.hs #-}
+-- | An example module.
+module Example (main) where
+
+-- | An example function.
+main :: IO ()
+main = return ()
+
+{-# START_FILE test-suite/TestSuite.hs #-}
+import qualified Test.Tasty
+import Test.Tasty.Hspec
+
+main :: IO ()
+main = do
+    test <- testSpec "{{ name }}" spec
+    Test.Tasty.defaultMain test
+
+spec :: Spec
+spec = parallel $ do
+    it "is trivially true" $ do
+        True `shouldBe` True
