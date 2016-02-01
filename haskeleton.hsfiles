@@ -111,7 +111,7 @@ provide for you. You should:
     Hackage at <http://hackage.haskell.org/packages>.
 
 -   Rename `library/Example.hs` to whatever you want your top-level module to
-    be called. Typically the is the same as your package name but in
+    be called. Typically this is the same as your package name but in
     `CamelCase` instead of `kebab-case`.
 
     -   Don't forget to rename the reference to it in
