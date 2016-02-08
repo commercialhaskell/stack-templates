@@ -1,0 +1,346 @@
+{-# START_FILE {{ name }}.cabal #-}
+name:                {{ name }}
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.md
+
+license:             ISC
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}TODO:<example@example.com>{{/author-email}}
+copyright:           © 2016 {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
+homepage:            http://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}
+bug-reports:         http://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}/issues
+
+category:            Test
+build-type:          Simple
+stability:           alpha (experimental)
+cabal-version:       >=1.10
+
+extra-source-files:
+  README.md
+  stack.yaml
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}
+
+library
+  default-language:  Haskell2010
+  ghc-options:       -Wall -Werror -O2
+  hs-source-dirs:    src
+  exposed-modules:   Lib
+  build-depends:     base >= 4.8 && < 5
+
+executable {{ name }}-exe
+  default-language:  Haskell2010
+  ghc-options:       -Wall -Werror -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    src-exe
+  main-is:           Main.hs
+  build-depends:     base >= 4.8 && < 5
+                   , {{ name }}
+
+test-suite {{ name }}-test
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -Werror -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    src-test
+  main-is:           Main.hs
+  build-depends:     base >= 4.8 && < 5
+                   , tasty >= 0.11
+                   , tasty-hunit >= 0.9
+                   , tasty-smallcheck >= 0.8
+                   , {{ name }}
+
+test-suite {{ name }}-doctest
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -Werror -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    src-doctest
+  main-is:           Main.hs
+  build-depends:     base >= 4.8 && < 5
+                   , doctest >=0.10
+                   , Glob >= 0.7
+                   , QuickCheck >= 2.5
+                   , {{ name }}
+
+benchmark {{ name }}-benchmark
+  type:              exitcode-stdio-1.0
+  default-language:  Haskell2010
+  ghc-options:       -Wall -Werror -O2 -Wall -threaded -rtsopts -with-rtsopts=-N
+  hs-source-dirs:    src-benchmark
+  main-is:           Main.hs
+  build-depends:     base >= 4.8 && < 5
+                   , criterion >= 1.1
+                   , {{ name }}
+
+{-# START_FILE src/Lib.hs #-}
+-- | Example of a library file. It is also used for testing the test suites.
+module Lib
+  (
+    -- * Exported functions
+    inc
+  ) where
+
+-- | Increment one 'Num' value.
+--
+--  >>> let answer = 42 :: Int
+--  >>> let prev = answer - 1
+--  >>> inc prev
+--  42
+--  >>> succ . Prelude.last . Prelude.take prev . iterate inc $ 1
+--  42
+--
+--  Properties:
+--
+--  prop> succ x == inc x
+--  prop> inc (negate x) == negate (pred x)
+--
+inc :: Num a => a -- ^ value to increment
+             -> a -- ^ result
+inc x = x + 1
+
+{-# START_FILE src-exe/Main.hs #-}
+import Lib (inc)
+
+main :: IO ()
+main = print . inc $ (41 :: Int)
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE src-test/Main.hs #-}
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.SmallCheck
+
+import Lib (inc)
+
+main :: IO ()
+main = defaultMain $ testGroup "all-tests" tests
+
+tests :: [TestTree]
+tests =
+  [ testGroup "SmallCheck" scTests
+  , testGroup "Unit tests" huTests
+  ]
+
+scTests :: [TestTree]
+scTests =
+  [ testProperty "inc == succ" prop_succ
+  , testProperty "inc . negate == negate . pred" prop_pred
+  ]
+
+huTests :: [TestTree]
+huTests =
+  [ testCase "Increment below TheAnswer" case_inc_below
+  , testCase "Decrement above TheAnswer" case_dec_above
+  ]
+
+prop_succ :: Int -> Bool
+prop_succ n = inc n == succ n
+
+prop_pred :: Int -> Bool
+prop_pred n = inc (negate n) == negate (pred n)
+
+case_inc_below :: Assertion
+case_inc_below = inc 41 @?= (42 :: Int)
+
+case_dec_above :: Assertion
+case_dec_above = negate (inc (negate 43)) @?= (42 :: Int)
+
+{-# START_FILE src-doctest/Main.hs #-}
+import System.FilePath.Glob
+import Test.DocTest
+
+main :: IO ()
+main = glob "src/**/*.hs" >>= doctest
+
+{-# START_FILE src-benchmark/Main.hs #-}
+import Criterion
+import Criterion.Main
+
+import Lib (inc)
+
+main :: IO ()
+main = defaultMain [bench "inc 41" (whnf inc (41 :: Int))]
+
+{-# START_FILE LICENSE #-}
+Copyright (c) 2016, {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+{-# START_FILE README.md #-}
+{{ name }}
+==========
+
+New Haskell project using stack template `tasty-travis`.
+
+Please read file `tutorial.md` for first steps in using the template.
+
+{-# START_FILE .gitignore #-}
+/tutorial.md
+/.stack-work/
+
+{-# START_FILE .travis.yml #-}
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Choose a lightweight base image; we provide our own build tools.
+language: c
+
+# GHC depends on GMP. You can add other dependencies here as well.
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+
+# The different configurations we want to test. You could also do things like
+# change flags or use --stack-yaml to point to a different file.
+env:
+- ARGS=""
+#- ARGS="--resolver lts-2"
+- ARGS="--resolver lts"
+- ARGS="--resolver nightly"
+
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+# This line does all of the work: installs GHC if necessary, builds the
+# library, executables, and test suites, and runs the test suites.
+# `--no-terminal works` around some quirks in Travis's terminal implementation.
+script: stack $ARGS --no-terminal --install-ghc test
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
+
+{-# START_FILE CHANGELOG.md #-}
+Change log
+==========
+
+{{ name }} uses [Semantic Versioning][1].
+The change log is available [on GitHub][2].
+
+[1]: http://semver.org/spec/v2.0.0.html
+[2]: https://github.com/{{ github-username }}/{{ name }}/releases
+
+## v0.1.0.0
+
+* Initially created.
+
+{-# START_FILE tutorial.md #-}
+
+Thanks for using the stack template `tasty-travis`! This file is here to guide
+you through customizing the template files.
+
+This template allows you to start a simple Haskell project, either to create a
+library or an application. It offers you the choice to customize the source
+directory while providing hints on the proposed hierarchy that the author uses
+(inspired by other Haskell projects).
+
+In the following sections, I will explain how to use the template.
+
+1. Initial configurations
+=========================
+
+Before you get started, there are a few things that this template couldn't
+provide for you. You should:
+
+* Add a synopsis to `{{ name }}.cabal`. It should be a short, one sentence
+  explanation of your project.
+
+* Edit the description field in `{{ name }}.cabal` if you don't like having
+  the description in the `README.md` file.
+
+* In `{{ name }}.cabal`, the category of the project has been set as 'Test'.
+  You might wish to change it to a more descriptive value. A list of
+  categories that you can use for the project is available on Hackage at
+  <http://hackage.haskell.org/packages>. Alternatively, you might prefer using
+  a name from the shorter list at
+  <https://byorgey.wordpress.com/2010/04/15/cabal-init/>.
+
+* If you haven't provided the `author-email`, `author-name`, and
+  `github-username` to the `config.yaml` global file, you will have to search
+  for "TODO" markup and complete this information in `{{ name }}.cabal` and/or
+  in `LICENSE`.
+
+2. Creating the git repository
+==============================
+
+If this project is a subdirectory of a larger project with an existing version
+control or you want to use another version control system or another setup,
+then you can ignore this section.
+
+From the root directory of the project (the directory of this file) you will
+need to run the following three commands:
+
+    git init
+    git add .
+    git commit -m "Initial commit"
+
+Now you can create a repository on GitHub to publish the code.
+
+Note that this file is excluded from the repository by being included in the
+`.gitignore` file. If you want this file to be tracked, you can remove the
+line `/tutorial.md` from that file.
+
+3. Testing the initial code
+===========================
+
+These are the stack commands you will likely use the most:
+
+``` sh
+# Build the project.
+stack build
+
+# Run the binary
+stack exec {{ name }}-exe
+
+# Run the test suite.
+stack test
+
+# Run the benchmarks.
+stack bench
+
+# Generate documentation.
+stack haddock
+```
+
+4. Customizing
+==============
+
+As you see, the template creates both a library and a binary and tests the
+library using two test suites (doctests from comments and tests with Tasty).
+Both test suites can test both properties and expected testcases. Finally,
+the template also offers a way to benchmark the code.
+
+Your project might differ significantly from this template. For example, you
+might want to have a different number of executables. In that case, you should
+remove/add more executable stanzas in `{{ name }}.cabal`.
+
+Similarly, if you don't want both test suites, you can remove one of the
+stanzas. You could do the same for the benchmarks.
+
+*More importantly* you might want to change the contents of the library.
+Rename `src/Lib` to whatever you want your top-module to be, usually the name
+of your project but using `CamelCase`. Don't forget to change this name in all
+places where it is referenced (executable(s), test(s) and benchmark(s)).
+
+Thanks again, and happy hacking!
+
