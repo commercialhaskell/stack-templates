@@ -138,7 +138,7 @@ api:
   image: {{name}}
   environment:
     - VIRTUAL_HOST={{virtual-host}}
-    - LETSENCRYPT_HOST=accounting-app-sandbox.detach.me
+    - LETSENCRYPT_HOST={{virtual-host}}
     - LETSENCRYPT_EMAIL={{author-email}}
   command: /usr/local/bin/{{name}}-exe
   port:
