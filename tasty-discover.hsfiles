@@ -1,7 +1,7 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            Simple project template from stack
+synopsis:            tasty-discover based template from stack
 description:         Please see README.md
 homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
@@ -38,10 +38,10 @@ module Main where
 main :: IO ()
 main = putStrLn "Hello, World!"
 
-{-# START_FILE tes/Tasty.hs #-}
+{-# START_FILE test/Tasty.hs #-}
 {-# OPTIONS_GHC -F -pgmF tasty-discover #-}
 
-{-# START_FILE tes/FooTest.hs #-}
+{-# START_FILE test/FooTest.hs #-}
 module FooTest where
 
 import Test.Tasty.Discover
