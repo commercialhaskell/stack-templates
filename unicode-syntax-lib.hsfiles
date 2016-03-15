@@ -1,7 +1,7 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            Unicode executable template from stack
+synopsis:            UnicodeSyntax library template from stack
 description:         Please see README.md
 homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
@@ -9,27 +9,32 @@ license-file:        LICENCE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
 copyright:           {{copyright}}{{^copyright}}2016 Author Here{{/copyright}}
-category:            {{category}}{{^category}}Web{{/category}}
+category:            {{category}}{{^category}}Data{{/category}}
 build-type:          Simple
 cabal-version:       >=1.10
 
-executable {{name}}
+library
   hs-source-dirs:      source
   default-language:    Haskell2010
   default-extensions:  UnicodeSyntax
                      , OverloadedStrings
-  main-is:             Main.hs
+  exposed-modules:     Library
   build-depends:       base
                      , base-unicode-symbols
                      
-{-# START_FILE Setup.hs #-}
-import Distribution.Simple
-main = defaultMain
+{-# START_FILE source/Library.hs #-}
+module Library where
 
-{-# START_FILE source/Main.hs #-}
-main ∷ IO ()
-main = do
-  putStrLn "ᚣ"
+data 𝕋 α β
+  = ℍ α
+  | ℙ β
+  | ℚ α β
+  deriving (Eq)
+
+ϝ ∷ (α → γ) → (β → γ) → (α → β → γ) → 𝕋 α β → γ
+ϝ l _ _ (ℍ a  ) = l a
+ϝ _ r _ (ℙ b  ) = r b
+ϝ _ _ g (ℚ a b) = g a b
 
 {-# START_FILE LICENCE #-}
 Copyright {{author-name}} © {{year}}
