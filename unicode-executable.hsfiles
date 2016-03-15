@@ -32,7 +32,7 @@ main = do
   putStrLn "ᚣ"
 
 {-# START_FILE LICENCE #-}
-Copyright {{author-name}} © 2016
+Copyright {{author-name}} © {{year}}
 
 All rights reserved.
 
