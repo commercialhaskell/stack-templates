@@ -1,87 +1,95 @@
 {-# START_FILE {{ name }}.cabal #-}
+-- This file will be overwritten by hpack the first time you run `stack build`.
+-- Edit `package.yaml` instead.
 name: {{ name }}
 version: 0.0.0
-cabal-version: >=1.10
-build-type: Simple
-license: MIT
-license-file: LICENSE.md
-maintainer: {{ author-name }}
-synopsis: TODO
-description:
-    <https://github.com/{{ github-username }}/{{ name }}#readme>
-category: TODO
+
+{-# START_FILE package.yaml #-}
+# This YAML file describes your package. Stack will automatically generate a
+# Cabal file when you run `stack build`. See the hpack website for help with
+# this file: <https://github.com/sol/hpack>.
+benchmarks:
+  {{ name }}-benchmarks:
+    dependencies:
+    - base
+    - {{ name }}
+    - criterion
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: benchmark
+category: Other
+description: {{ name }} is a new Haskeleton package.
+executables:
+  {{ name }}:
+    dependencies:
+    - base
+    - {{ name }}
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: executable
 extra-source-files:
-    README.md
-    stack.yaml
-
-source-repository head
-    type: git
-    location: https://github.com/{{ github-username }}/{{ name }}
-
-library
-    exposed-modules:
-        Example
-    build-depends:
-        base ==4.8.*
-    default-language: Haskell2010
-    hs-source-dirs: library
-    ghc-options: -Wall
-
-executable {{ name }}
-    main-is: Executable.hs
-    build-depends:
-        base -any,
-        {{ name }} -any
-    default-language: Haskell2010
-    hs-source-dirs: executable
-    ghc-options: -threaded -Wall
-
-test-suite {{ name }}-test-suite
-    type: exitcode-stdio-1.0
-    main-is: TestSuite.hs
-    build-depends:
-        base -any,
-        {{ name }} -any,
-        tasty ==0.11.0.2,
-        tasty-hspec ==1.1.2
-    default-language: Haskell2010
-    hs-source-dirs: test-suite
-    ghc-options: -threaded -Wall -Werror
-
-benchmark {{ name }}-benchmark
-    type: exitcode-stdio-1.0
-    main-is: Benchmark.hs
-    build-depends:
-        base -any,
-        {{ name }} -any,
-        criterion ==1.1.0.0
-    default-language: Haskell2010
-    hs-source-dirs: benchmark
-    ghc-options: -threaded -Wall
+- CHANGELOG.md
+- LICENSE.md
+- package.yaml
+- README.md
+- stack.yaml
+ghc-options: -Wall
+github: {{ github-username }}/{{ name }}
+library:
+  dependencies:
+  - base
+  source-dirs: library
+license: MIT
+maintainer: {{ author-name }}
+name: {{ name }}
+synopsis: A new Haskeleton package.
+tests:
+  {{ name }}-test-suite:
+    dependencies:
+    - base
+    - {{ name }}
+    - tasty
+    - tasty-hspec
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+    main: Main.hs
+    source-dirs: test-suite
+version: '0.0.0'
 
 {-# START_FILE .gitignore #-}
+# Stack uses this directory as scratch space.
 /.stack-work/
+# Stack generates the Cabal file from `package.yaml` through hpack.
+/*.cabal
 
 {-# START_FILE CHANGELOG.md #-}
 # Change log
 
 {{ name }} uses [Semantic Versioning][].
-The change log is available [on GitHub][].
+The change log is available through the [releases on GitHub][].
 
-[semantic versioning]: http://semver.org/spec/v2.0.0.html
-[on github]: https://github.com/{{ github-username }}/{{ name }}/releases
+[Semantic Versioning]: http://semver.org/spec/v2.0.0.html
+[releases on GitHub]: https://github.com/{{ github-username }}/{{ name }}/releases
 
 {-# START_FILE LICENSE.md #-}
-The MIT License (MIT)
+[The MIT License (MIT)][]
 
-Copyright (c) 2016 {{ author-name }}
+Copyright (c) {{ year }} {{ author-name }}
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
 the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -94,6 +102,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+[The MIT License (MIT)]: https://opensource.org/licenses/MIT
+
 {-# START_FILE README.md #-}
 # [{{ name }}][]
 
@@ -104,10 +114,13 @@ before, I suggest reading the introductory blog post. You can find it here:
 Before you get started, there are a few things that this template couldn't
 provide for you. You should:
 
--   Add a synopsis to `{{ name }}.cabal`. It should be a short (one sentence)
+-   Add a synopsis to `package.yaml`. It should be a short (one sentence)
     explanation of your project.
 
--   Add a category to `{{ name }}.cabal`. A list of categories is available on
+-   Add a description to `package.yaml`. This can be whatever you want it to
+    be.
+
+-   Add a category to `package.yaml`. A list of categories is available on
     Hackage at <http://hackage.haskell.org/packages>.
 
 -   Rename `library/Example.hs` to whatever you want your top-level module to
@@ -115,10 +128,10 @@ provide for you. You should:
     `CamelCase` instead of `kebab-case`.
 
     -   Don't forget to rename the reference to it in
-        `executable/Executable.hs`!
+        `executable/Main.hs`!
 
 Once you've done that, start working on your project with the Stack commands
-you know and love!
+you know and love.
 
 ``` sh
 # Build the project.
@@ -139,19 +152,26 @@ Thanks again, and happy hacking!
 [{{ name }}]: https://github.com/{{ github-username }}/{{ name }}
 
 {-# START_FILE Setup.hs #-}
+-- This script is used to build and install your package. Typically you don't
+-- need to change it. The Cabal documentation has more information about this
+-- file: <https://www.haskell.org/cabal/users-guide/installing-packages.html>.
 import qualified Distribution.Simple
 
 main :: IO ()
 main = Distribution.Simple.defaultMain
 
-{-# START_FILE benchmark/Benchmark.hs #-}
-import Criterion
-import qualified Criterion.Main
+{-# START_FILE benchmark/Main.hs #-}
+-- You can benchmark your code quickly and effectively with Criterion. See its
+-- website for help: <http://www.serpentine.com/criterion/>.
+import Criterion.Main
 
 main :: IO ()
-main = Criterion.Main.defaultMain [bench "const" (whnf const ())]
+main = defaultMain [bench "const" (whnf const ())]
 
-{-# START_FILE executable/Executable.hs #-}
+{-# START_FILE executable/Main.hs #-}
+-- It is generally a good idea to keep all your business logic in your library
+-- and only use it in the executable. Doing so allows others to use what you
+-- wrote in their libraries.
 import qualified Example
 
 main :: IO ()
@@ -165,8 +185,13 @@ module Example (main) where
 main :: IO ()
 main = return ()
 
-{-# START_FILE test-suite/TestSuite.hs #-}
+{-# START_FILE test-suite/Main.hs #-}
+-- Tasty makes it easy to test your code. It is a test framework that can
+-- combine many different types of tests into one suite. See its website for
+-- help: <http://documentup.com/feuerbach/tasty>.
 import qualified Test.Tasty
+-- Hspec is one of the providers for Tasty. It provides a nice syntax for
+-- writing tests. Its website has more info: <https://hspec.github.io>.
 import Test.Tasty.Hspec
 
 main :: IO ()
