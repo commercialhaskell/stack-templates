@@ -1,8 +1,75 @@
 {-# START_FILE {{ name }}.cabal #-}
--- This file will be overwritten by hpack the first time you run `stack build`.
--- Edit `package.yaml` instead.
-name: {{ name }}
-version: 0.0.0
+-- This file has been generated from package.yaml by hpack version 0.9.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           {{ name }}
+version:        0.0.0
+synopsis:       A new Haskeleton package.
+description:    {{ name }} is a new Haskeleton package.
+category:       Other
+homepage:       https://github.com/{{ github-username }}/{{ name }}#readme
+bug-reports:    https://github.com/{{ github-username }}/{{ name }}/issues
+maintainer:     Taylor Fausak
+license:        MIT
+build-type:     Simple
+cabal-version:  >= 1.10
+
+extra-source-files:
+    CHANGELOG.md
+    LICENSE.md
+    package.yaml
+    README.md
+    stack.yaml
+
+source-repository head
+  type: git
+  location: https://github.com/{{ github-username }}/{{ name }}
+
+library
+  hs-source-dirs:
+      library
+  ghc-options: -Wall
+  build-depends:
+      base
+  exposed-modules:
+      Example
+  default-language: Haskell2010
+
+executable {{ name }}
+  main-is: Main.hs
+  hs-source-dirs:
+      executable
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      base
+    , {{ name }}
+  default-language: Haskell2010
+
+test-suite {{ name }}-test-suite
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      test-suite
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      base
+    , {{ name }}
+    , tasty
+    , tasty-hspec
+  default-language: Haskell2010
+
+benchmark {{ name }}-benchmarks
+  type: exitcode-stdio-1.0
+  main-is: Main.hs
+  hs-source-dirs:
+      benchmark
+  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
+  build-depends:
+      base
+    , {{ name }}
+    , criterion
+  default-language: Haskell2010
 
 {-# START_FILE package.yaml #-}
 # This YAML file describes your package. Stack will automatically generate a
@@ -129,6 +196,9 @@ provide for you. You should:
 
     -   Don't forget to rename the reference to it in
         `executable/Main.hs`!
+
+-   If you are on an older version of Stack (<1.0.4), delete `package.yaml` and
+    remove `/*.cabal` from your `.gitignore`.
 
 Once you've done that, start working on your project with the Stack commands
 you know and love.
