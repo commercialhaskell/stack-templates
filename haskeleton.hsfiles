@@ -10,7 +10,7 @@ description:    {{ name }} is a new Haskeleton package.
 category:       Other
 homepage:       https://github.com/{{ github-username }}/{{ name }}#readme
 bug-reports:    https://github.com/{{ github-username }}/{{ name }}/issues
-maintainer:     Taylor Fausak
+maintainer:     {{ author-name }}
 license:        MIT
 build-type:     Simple
 cabal-version:  >= 1.10
