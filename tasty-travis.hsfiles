@@ -238,7 +238,7 @@ Change log
 The change log is available [on GitHub][2].
 
 [1]: http://semver.org/spec/v2.0.0.html
-[2]: https://github.com/{{ github-username }}/{{ name }}/releases
+[2]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/releases
 
 ## v0.1.0.0
 
@@ -343,4 +343,3 @@ of your project but using `CamelCase`. Don't forget to change this name in all
 places where it is referenced (executable(s), test(s) and benchmark(s)).
 
 Thanks again, and happy hacking!
-

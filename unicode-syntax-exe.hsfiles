@@ -8,7 +8,7 @@ license:             BSD3
 license-file:        LICENCE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}2016 Author Here{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 cabal-version:       >=1.10
@@ -32,7 +32,7 @@ main = do
   putStrLn "ᚣ"
 
 {-# START_FILE LICENCE #-}
-Copyright {{author-name}} © {{year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}
 
 All rights reserved.
 
@@ -47,7 +47,7 @@ modification, are permitted provided that the following conditions are met:
       disclaimer in the documentation and/or other materials provided
       with the distribution.
 
-    * Neither the name of {{author-name}} nor the names of other
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} the names of other
       contributors may be used to endorse or promote products derived
       from this software without specific prior written permission.
 
