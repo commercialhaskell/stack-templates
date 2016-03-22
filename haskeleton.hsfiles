@@ -8,9 +8,9 @@ version:        0.0.0
 synopsis:       A new Haskeleton package.
 description:    {{ name }} is a new Haskeleton package.
 category:       Other
-homepage:       https://github.com/{{ github-username }}/{{ name }}#readme
-bug-reports:    https://github.com/{{ github-username }}/{{ name }}/issues
-maintainer:     {{ author-name }}
+homepage:       https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}#readme
+bug-reports:    https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/issues
+maintainer:     {{author-name}}{{^author-name}}Author name here{{/author-name}}
 license:        MIT
 build-type:     Simple
 cabal-version:  >= 1.10
@@ -24,7 +24,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/{{ github-username }}/{{ name }}
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
 
 library
   hs-source-dirs:
@@ -107,13 +107,13 @@ extra-source-files:
 - README.md
 - stack.yaml
 ghc-options: -Wall
-github: {{ github-username }}/{{ name }}
+github: {{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
 library:
   dependencies:
   - base
   source-dirs: library
 license: MIT
-maintainer: {{ author-name }}
+maintainer: {{author-name}}{{^author-name}}Author name here{{/author-name}}
 name: {{ name }}
 synopsis: A new Haskeleton package.
 tests:
@@ -144,12 +144,12 @@ version: '0.0.0'
 The change log is available through the [releases on GitHub][].
 
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
-[releases on GitHub]: https://github.com/{{ github-username }}/{{ name }}/releases
+[releases on GitHub]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/releases
 
 {-# START_FILE LICENSE.md #-}
 [The MIT License (MIT)][]
 
-Copyright (c) {{ year }} {{ author-name }}
+Copyright (c) {{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -219,7 +219,7 @@ stack haddock
 
 Thanks again, and happy hacking!
 
-[{{ name }}]: https://github.com/{{ github-username }}/{{ name }}
+[{{ name }}]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
 
 {-# START_FILE Setup.hs #-}
 -- This script is used to build and install your package. Typically you don't
