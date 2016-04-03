@@ -10,7 +10,7 @@ name:                {{name}}
 version:             0.1.0.0
 synopsis:            TODO Initial project template from stack
 description:         Please see README.md
-homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 license:             BSD3
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}

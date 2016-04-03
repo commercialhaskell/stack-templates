@@ -9,8 +9,8 @@ license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}TODO:<example@example.com>{{/author-email}}
 copyright:           © {{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
-homepage:            http://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}
-bug-reports:         http://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}/issues
+homepage:            https://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}
+bug-reports:         https://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}/issues
 
 category:            Test
 build-type:          Simple
