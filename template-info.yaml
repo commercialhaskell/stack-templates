@@ -1,0 +1,86 @@
+chrisdone:
+  description:
+
+franklinchen:
+  description:
+
+ghcjs:
+  description: Haskell to JavaScript compiler, based on GHC
+
+ghcjs-old-base:
+  description:
+
+hakyll-template:
+  description: a static website compiler library
+
+haskeleton:
+  description: a project skeleton for Haskell packages
+
+hspec:
+  description: a testing framework for Haskell inspired by the Ruby library RSpec
+
+new-template:
+  description:
+
+quickcheck-test-framework:
+  description: a library for random testing of program properties
+
+rubik:
+  description:
+
+scotty-hello-world:
+  description:
+
+scotty-hspec-wai:
+  description:
+
+servant:
+  description: a set of packages for declaring web APIs at the type-level
+
+servant-docker:
+  description:
+
+simple:
+  description:
+
+simple-hpack:
+  description:
+
+simple-library:
+  description:
+
+tasty-discover:
+  description:
+
+tasty-travis:
+  description:
+
+unicode-syntax-exe:
+  description:
+
+unicode-syntax-lib:
+  description:
+
+yesod-hello-world:
+  description:
+
+yesod-minimal:
+  description:
+
+yesod-mongo:
+  description:
+
+yesod-mysql:
+  description:
+
+yesod-postgres:
+  description:
+
+yesod-postgres-fay:
+  description:
+
+yesod-simple:
+  description:
+
+yesod-sqlite:
+  description:
