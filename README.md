@@ -50,3 +50,7 @@ parameters, use this Mustache syntax:
 ```
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 ```
+
+## `template-info.yaml`
+
+When contributing a new template, please remember to add a corresponding entry to `template-info.yaml`. Additional descriptive information for the template may be provided, but is not required.
