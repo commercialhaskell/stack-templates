@@ -141,7 +141,7 @@ api:
     - LETSENCRYPT_HOST={{virtual-host}}
     - LETSENCRYPT_EMAIL={{author-email}}
   command: /usr/local/bin/{{name}}-exe
-  port:
+  ports:
     - "8080"
 nginxproxy:
   image: jwilder/nginx-proxy
