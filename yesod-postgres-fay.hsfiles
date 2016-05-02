@@ -177,7 +177,7 @@ getApplicationDev = do
     return (wsettings, app)
 
 getAppSettings :: IO AppSettings
-getAppSettings = loadAppSettings [configSettingsYml] [] useEnv
+getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
 
 -- | main function for use by yesod devel
 develMain :: IO ()
@@ -187,7 +187,7 @@ develMain = develMainHelper getApplicationDev
 appMain :: IO ()
 appMain = do
     -- Get the settings from all relevant sources
-    settings <- loadAppSettingsArgs
+    settings <- loadYamlSettingsArgs
         -- fall back to compile-time values, set to [] to require values at runtime
         [configSettingsYmlValue]
 
@@ -469,8 +469,8 @@ fibs = 0 : 1 : zipWith (+) fibs (drop 1 fibs)
 onCommand :: CommandHandler App
 onCommand render command =
     case readFromFay command of
-      Just (GetFib index r) -> render r $ fibs !! index
-      Nothing               -> invalidArgs ["Invalid command"]
+      Just (GetFib idx r) -> render r $ fibs !! idx
+      Nothing             -> invalidArgs ["Invalid command"]
 
 {-# START_FILE Handler/Home.hs #-}
 module Handler.Home where
@@ -617,7 +617,7 @@ library
                 RecordWildCards
 
     build-depends: base                          >= 4          && < 5
-                 , yesod                         >= 1.4.1      && < 1.5
+                 , yesod                         >= 1.4.3      && < 1.5
                  , yesod-core                    >= 1.4.17     && < 1.5
                  , yesod-auth                    >= 1.4.0      && < 1.5
                  , yesod-static                  >= 1.4.0.3    && < 1.6
@@ -629,9 +629,9 @@ library
                  , classy-prelude-yesod          >= 0.10.2
                  , bytestring                    >= 0.9        && < 0.11
                  , text                          >= 0.11       && < 2.0
-                 , persistent                    >= 2.0        && < 2.3
-                 , persistent-postgresql         >= 2.1.1      && < 2.3
-                 , persistent-template           >= 2.0        && < 2.3
+                 , persistent                    >= 2.0        && < 2.6
+                 , persistent-postgresql         >= 2.1.1      && < 2.6
+                 , persistent-template           >= 2.0        && < 2.6
                  , template-haskell
                  , shakespeare                   >= 2.0        && < 2.1
                  , monad-control                 >= 0.3        && < 1.1
@@ -668,6 +668,10 @@ executable         {{name}}
 test-suite test
     type:              exitcode-stdio-1.0
     main-is:           Spec.hs
+    other-modules:     Handler.CommentSpec
+                       Handler.CommonSpec
+                       Handler.HomeSpec
+                       TestImport
     hs-source-dirs:    test
     ghc-options:       -Wall
 
@@ -9475,14 +9479,14 @@ module TestImport
     ) where
 
 import Application           (makeFoundation, makeLogWare)
-import ClassyPrelude         as X
+import ClassyPrelude         as X hiding (delete, deleteBy)
 import Database.Persist      as X hiding (get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
 import Foundation            as X
 import Model                 as X
 import Test.Hspec            as X
 import Text.Shakespeare.Text (st)
-import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
 import Yesod.Test            as X
 
 runDB :: SqlPersistM a -> YesodExample App a
@@ -9496,7 +9500,7 @@ runDBWithApp app query = runSqlPersistMPool query (appConnPool app)
 
 withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
-    settings <- loadAppSettings
+    settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
         ignoreEnv

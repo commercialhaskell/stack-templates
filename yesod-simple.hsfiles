@@ -150,7 +150,7 @@ getApplicationDev = do
     return (wsettings, app)
 
 getAppSettings :: IO AppSettings
-getAppSettings = loadAppSettings [configSettingsYml] [] useEnv
+getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
 
 -- | main function for use by yesod devel
 develMain :: IO ()
@@ -160,7 +160,7 @@ develMain = develMainHelper getApplicationDev
 appMain :: IO ()
 appMain = do
     -- Get the settings from all relevant sources
-    settings <- loadAppSettingsArgs
+    settings <- loadYamlSettingsArgs
         -- fall back to compile-time values, set to [] to require values at runtime
         [configSettingsYmlValue]
 
@@ -480,7 +480,7 @@ library
                 RecordWildCards
 
     build-depends: base                          >= 4          && < 5
-                 , yesod                         >= 1.4.1      && < 1.5
+                 , yesod                         >= 1.4.3      && < 1.5
                  , yesod-core                    >= 1.4.17     && < 1.5
                  , yesod-static                  >= 1.4.0.3    && < 1.6
                  , yesod-form                    >= 1.4.0      && < 1.5
@@ -491,7 +491,7 @@ library
                  , text                          >= 0.11       && < 2.0
                  , template-haskell
                  , shakespeare                   >= 2.0        && < 2.1
-                 , hjsmin                        >= 0.1        && < 0.2
+                 , hjsmin                        >= 0.1        && < 0.3
                  , monad-control                 >= 0.3        && < 1.1
                  , wai-extra                     >= 3.0        && < 3.1
                  , yaml                          >= 0.8        && < 0.9
@@ -526,6 +526,9 @@ executable         {{name}}
 test-suite test
     type:              exitcode-stdio-1.0
     main-is:           Spec.hs
+    other-modules:     Handler.CommonSpec
+                       Handler.HomeSpec
+                       TestImport
     hs-source-dirs:    test
     ghc-options:       -Wall
 
@@ -9158,12 +9161,12 @@ import Application           (makeFoundation, makeLogWare)
 import ClassyPrelude         as X
 import Foundation            as X
 import Test.Hspec            as X
-import Yesod.Default.Config2 (ignoreEnv, loadAppSettings)
+import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
 import Yesod.Test            as X
 
 withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
-    settings <- loadAppSettings
+    settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
         ignoreEnv

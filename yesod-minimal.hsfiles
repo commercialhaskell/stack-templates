@@ -62,9 +62,11 @@ getAddR x y = selectRep $ do
     z = x + y
 
 {-# START_FILE Application.hs #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE ViewPatterns      #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE ViewPatterns         #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application where
 
 import Foundation
