@@ -7,7 +7,7 @@ homepage:            https://github.com/{{github-username}}{{^github-username}}g
 license:             BSD3
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 
 dependencies:
