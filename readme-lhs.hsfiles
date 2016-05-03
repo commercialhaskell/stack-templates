@@ -1,0 +1,166 @@
+{-# START_FILE readme.lhs #-}
+{{name}}
+===
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+readme.lhs
+---
+
+This template targets a library build together with an executable based on the readme.lhs file which also doubles as the main documentation and early testing point for the project.
+
+usage
+---
+
+~~~
+stack new projectname readme-lhs
+cd projectname
+<<edit readme.lhs>>
+stack build
+~~~
+
+`stack solve` and `stack build` if anything goes wrong.
+
+The resultant workflow tends to be conducive to very tight coding loops.
+
+To build & run:
+
+~~~
+stack install && readme
+~~~
+
+Build, run, render output, and render readme.lhs on file changes. 
+
+~~~
+filewatcher '**/*.{lhs,hs,cabal}' 'stack install && echo "built" && readme | pandoc -f markdown+lhs -t html -o readme-out.html && pandoc -f markdown+lhs -i readme.lhs -t html -o readme.html && echo "run"'
+~~~
+
+
+> {-# LANGUAGE NoImplicitPrelude #-}
+> import Protolude
+
+> main :: IO ()
+> main = print "readme.lhs template"
+> 
+
+{-# START_FILE {{name}}.cabal #-}
+name:                  {{name}}
+version:               0.1.0.0
+synopsis:              TODO Initial project template from stack
+description:           readme.lhs
+homepage:              https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+license:               BSD3
+license-file:          LICENSE
+author:                {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:            {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:             {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+category:              {{category}}{{^category}}{{/category}}
+build-type:            Simple
+cabal-version:         >=1.10
+
+library
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+  build-depends:       base >= 4.7 && < 5
+
+executable readme
+  default-language:    Haskell2010
+  ghc-options:         -O2
+                       -funbox-strict-fields
+                       -fforce-recomp
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
+  hs-source-dirs:      ./
+  main-is:             readme.lhs
+  build-depends:       base
+                     , protolude
+                     , {{name}}
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE src/Lib.hs #-}
+-- | zero library
+module Lib () where
+
+{-# START_FILE .gitignore #-}
+/.stack-work/
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE .travis.yml #-}
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Choose a lightweight base image; we provide our own build tools.
+language: c
+
+# GHC depends on GMP. You can add other dependencies here as well.
+addons:
+  apt:
+    packages:
+    - libgmp-dev
+
+# The different configurations we want to test. You could also do things like
+# change flags or use --stack-yaml to point to a different file.
+env:
+- ARGS=""
+#- ARGS="--resolver lts-2"
+- ARGS="--resolver lts-3"
+- ARGS="--resolver lts"
+- ARGS="--resolver nightly"
+
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+# This line does all of the work: installs GHC if necessary, build the library,
+# executables, and test suites, and runs the test suites. --no-terminal works
+# around some quirks in Travis's terminal implementation.
+script: stack $ARGS --no-terminal --install-ghc test --haddock
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
+
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2016{{/year}}
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
