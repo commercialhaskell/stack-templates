@@ -19,7 +19,7 @@ cd projectname
 stack build
 ~~~
 
-`stack solve` and `stack build` if anything goes wrong.
+`stack solver` and `stack build` if anything goes wrong.
 
 The resultant workflow tends to be conducive to very tight coding loops.
 
@@ -29,7 +29,7 @@ To build & run:
 stack install && readme
 ~~~
 
-Build, run, render output, and render readme.lhs on file changes. 
+Build, run, render output, and render readme.lhs on file changes.
 
 ~~~
 filewatcher '**/*.{lhs,hs,cabal}' 'stack install && echo "built" && readme | pandoc -f markdown+lhs -t html -o readme-out.html && pandoc -f markdown+lhs -i readme.lhs -t html -o readme.html && echo "run"'
@@ -41,7 +41,7 @@ filewatcher '**/*.{lhs,hs,cabal}' 'stack install && echo "built" && readme | pan
 
 > main :: IO ()
 > main = print "readme.lhs template"
-> 
+>
 
 {-# START_FILE {{name}}.cabal #-}
 name:                  {{name}}
