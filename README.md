@@ -1,6 +1,8 @@
 A repository for templates used by `stack new`.
 See: http://haskellstack.org
 
+[![Build Status](https://travis-ci.org/commercialhaskell/stack-templates.svg?branch=master)](https://travis-ci.org/commercialhaskell/stack-templates)
+
 ## Introduction
 
 Project templates are written in hsfiles format, using [mustache](https://mustache.github.io/mustache.1.html). Each
