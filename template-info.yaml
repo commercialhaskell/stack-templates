@@ -25,6 +25,9 @@ new-template:
 quickcheck-test-framework:
   description: a library for random testing of program properties
 
+readme-lhs:
+  description:
+
 rubik:
   description:
 
@@ -36,6 +39,9 @@ scotty-hspec-wai:
 
 servant:
   description: a set of packages for declaring web APIs at the type-level
+
+servant-0.4:
+  description:
 
 servant-docker:
   description:
