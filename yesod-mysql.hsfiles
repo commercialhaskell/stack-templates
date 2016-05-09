@@ -993,7 +993,11 @@ stanzas:
 
     # Name of your executable. You are unlikely to need to change this.
     # Note that all file paths are relative to the keter.yml file.
-    exec: ../dist/build/{{name}}/{{name}}
+    #
+    # The path given is for Stack projects. If you're still using cabal, change
+    # to
+    # exec: ../dist/build/{{name}}/{{name}}
+    exec: ../dist/bin/{{name}}
 
     # Command line options passed to your application.
     args: []
