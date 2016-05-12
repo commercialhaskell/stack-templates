@@ -9261,7 +9261,7 @@ spec = withApp $ do
             
             statusIs 200
 
-            [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
+            (Entity _id comment:_) <- runDB $ selectList [CommentMessage ==. message] []
             assertEqual "Should have " comment (Comment message Nothing)
 
     describe "invalid requests" $ do
