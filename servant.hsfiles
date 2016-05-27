@@ -38,6 +38,10 @@ test-suite {{name}}-test
   main-is:             Spec.hs
   build-depends:       base
                      , {{name}}
+                     , hspec
+                     , hspec-wai
+                     , hspec-wai-json
+                     , aeson
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
@@ -50,8 +54,26 @@ import Distribution.Simple
 main = defaultMain
 
 {-# START_FILE test/Spec.hs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Main (main) where
+
+import Lib (app)
+import Test.Hspec
+import Test.Hspec.Wai
+import Test.Hspec.Wai.JSON
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = hspec spec
+
+spec :: Spec
+spec = with (return app) $ do
+    describe "GET /users" $ do
+        it "responds with 200" $ do
+            get "/users" `shouldRespondWith` 200
+        it "responds with [User]" $ do
+            let users = "[{\"userId\":1,\"userFirstName\":\"Isaac\",\"userLastName\":\"Newton\"},{\"userId\":2,\"userFirstName\":\"Albert\",\"userLastName\":\"Einstein\"}]"
+            get "/users" `shouldRespondWith` users
 
 {-# START_FILE src/Lib.hs #-}
 {-# LANGUAGE DataKinds       #-}
@@ -59,6 +81,7 @@ main = putStrLn "Test suite not yet implemented"
 {-# LANGUAGE TypeOperators   #-}
 module Lib
     ( startApp
+    , app
     ) where
 
 import Data.Aeson
