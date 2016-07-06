@@ -19,6 +19,9 @@ haskeleton:
 hspec:
   description: a testing framework for Haskell inspired by the Ruby library RSpec
 
+hspec-gplv3:
+  description: a project skeleton with hspec and with GPLv3 license
+
 new-template:
   description:
 
