@@ -22,6 +22,9 @@ hspec:
 new-template:
   description:
 
+protolude:
+  description: Project using a custom Prelude based on the Protolude library
+
 quickcheck-test-framework:
   description: a library for random testing of program properties
 
