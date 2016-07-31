@@ -291,6 +291,7 @@ instance Yesod App where
     -- Some users may also want to add the defaultCsrfMiddleware, which:
     --   a) Sets a cookie with a CSRF token in it.
     --   b) Validates that incoming write requests include that token in either a header or POST parameter.
+    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
     -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
     yesodMiddleware = defaultYesodMiddleware
 
@@ -604,7 +605,7 @@ library
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
                  , fast-logger                   >= 2.2        && < 2.5
-                 , wai-logger                    >= 2.2        && < 2.3
+                 , wai-logger                    >= 2.2        && < 2.4
                  , file-embed
                  , safe
                  , unordered-containers
@@ -9293,8 +9294,7 @@ spec = withApp $ do
                 setUrl CommentR
                 setRequestBody encoded
                 addRequestHeader ("Content-Type", "application/json")
-                addTokenFromCookie
-            
+
             statusIs 200
 
             [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
@@ -9305,12 +9305,13 @@ spec = withApp $ do
             get HomeR
 
             let body = object [ "foo" .= ("My message" :: Value) ]
+
             request $ do
                 setMethod "POST"
                 setUrl CommentR
                 setRequestBody $ encode body
                 addRequestHeader ("Content-Type", "application/json")
-                addTokenFromCookie
+
             statusIs 400
 
 
