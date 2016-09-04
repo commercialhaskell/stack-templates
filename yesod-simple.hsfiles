@@ -421,11 +421,17 @@ import Foundation            as Import
 import Import.NoFoundation   as Import
 
 {-# START_FILE Import/NoFoundation.hs #-}
+{-# LANGUAGE CPP #-}
 module Import.NoFoundation
     ( module Import
     ) where
 
+#if MIN_VERSION_classy_prelude(1,0,0)
+import ClassyPrelude.Yesod   as Import hiding (Handler)
+#else
 import ClassyPrelude.Yesod   as Import
+#endif
+
 import Settings              as Import
 import Settings.StaticFiles  as Import
 import Yesod.Core.Types      as Import (loggerSet)
@@ -496,11 +502,11 @@ library
                  , monad-control                 >= 0.3        && < 1.1
                  , wai-extra                     >= 3.0        && < 3.1
                  , yaml                          >= 0.8        && < 0.9
-                 , http-conduit                  >= 2.1        && < 2.2
+                 , http-conduit                  >= 2.1        && < 2.3
                  , directory                     >= 1.1        && < 1.3
                  , warp                          >= 3.0        && < 3.3
                  , data-default
-                 , aeson                         >= 0.6        && < 0.12
+                 , aeson                         >= 0.6        && < 1.1
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
                  , fast-logger                   >= 2.2        && < 2.5
@@ -552,7 +558,7 @@ test-suite test
 
     build-depends: base
                  , {{name}}
-                 , yesod-test >= 1.5.0.1 && < 1.6
+                 , yesod-test >= 1.5.2 && < 1.6
                  , yesod-core
                  , yesod
                  , hspec >= 2.0.0
@@ -570,7 +576,7 @@ test-suite test
 module Settings where
 
 import ClassyPrelude.Yesod
-import Control.Exception           (throw)
+import qualified Control.Exception as Exception
 import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
                                     (.:?))
 import Data.FileEmbed              (embedFile)
@@ -669,7 +675,8 @@ configSettingsYmlBS = $(embedFile configSettingsYml)
 
 -- | @config/settings.yml@, parsed to a @Value@.
 configSettingsYmlValue :: Value
-configSettingsYmlValue = either throw id $ decodeEither' configSettingsYmlBS
+configSettingsYmlValue = either Exception.throw id
+                       $ decodeEither' configSettingsYmlBS
 
 -- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
 compileTimeAppSettings :: AppSettings
@@ -9135,23 +9142,24 @@ import TestImport
 
 spec :: Spec
 spec = withApp $ do
-    it "loads the index and checks it looks right" $ do
-        get HomeR
-        statusIs 200
-        htmlAllContain "h1" "Welcome to Yesod"
 
-        request $ do
-            setMethod "POST"
-            setUrl HomeR
-            addToken
-            fileByLabel "Choose a file" "test/Spec.hs" "text/plain" -- talk about self-reference
-            byLabel "What's on the file?" "Some Content"
+    describe "Homepage" $ do
+      it "loads the index and checks it looks right" $ do
+          get HomeR
+          statusIs 200
+          htmlAllContain "h1" "Welcome to Yesod"
 
-        statusIs 200
-        -- more debugging printBody
-        htmlCount ".message" 1
-        htmlAllContain ".message" "Some Content"
-        htmlAllContain ".message" "text/plain"
+          request $ do
+              setMethod "POST"
+              setUrl HomeR
+              addToken
+              fileByLabel "Choose a file" "test/Spec.hs" "text/plain" -- talk about self-reference
+              byLabel "What's on the file?" "Some Content"
+
+          -- more debugging printBody
+          htmlCount ".message" 1
+          htmlAllContain ".message" "Some Content"
+          htmlAllContain ".message" "text/plain"
 
 {-# START_FILE test/Spec.hs #-}
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
@@ -9166,7 +9174,7 @@ import Application           (makeFoundation, makeLogWare)
 import ClassyPrelude         as X
 import Foundation            as X
 import Test.Hspec            as X
-import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
+import Yesod.Default.Config2 (useEnv, loadYamlSettings)
 import Yesod.Test            as X
 
 withApp :: SpecWith (TestApp App) -> Spec
@@ -9174,7 +9182,7 @@ withApp = before $ do
     settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
-        ignoreEnv
+        useEnv
     foundation <- makeFoundation settings
     logWare <- liftIO $ makeLogWare foundation
     return (foundation, logWare)

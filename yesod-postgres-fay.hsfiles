@@ -536,11 +536,17 @@ fayFile :: FayFile
 fayFile = fayFile' (ConE 'StaticR)
 
 {-# START_FILE Import/NoFoundation.hs #-}
+{-# LANGUAGE CPP #-}
 module Import.NoFoundation
     ( module Import
     ) where
 
+#if MIN_VERSION_classy_prelude(1,0,0)
+import ClassyPrelude.Yesod   as Import hiding (Handler)
+#else
 import ClassyPrelude.Yesod   as Import
+#endif
+
 import Model                 as Import
 import Settings              as Import
 import Settings.StaticFiles  as Import
@@ -630,19 +636,19 @@ library
                  , classy-prelude-yesod          >= 0.10.2
                  , bytestring                    >= 0.9        && < 0.11
                  , text                          >= 0.11       && < 2.0
-                 , persistent                    >= 2.0        && < 2.6
-                 , persistent-postgresql         >= 2.1.1      && < 2.6
-                 , persistent-template           >= 2.0        && < 2.6
+                 , persistent                    >= 2.0        && < 2.7
+                 , persistent-postgresql         >= 2.1.1      && < 2.7
+                 , persistent-template           >= 2.0        && < 2.7
                  , template-haskell
                  , shakespeare                   >= 2.0        && < 2.1
                  , monad-control                 >= 0.3        && < 1.1
                  , wai-extra                     >= 3.0        && < 3.1
                  , yaml                          >= 0.8        && < 0.9
-                 , http-conduit                  >= 2.1        && < 2.2
+                 , http-conduit                  >= 2.1        && < 2.3
                  , directory                     >= 1.1        && < 1.3
                  , warp                          >= 3.0        && < 3.3
                  , data-default
-                 , aeson                         >= 0.6        && < 0.12
+                 , aeson                         >= 0.6        && < 1.1
                  , conduit                       >= 1.0        && < 2.0
                  , monad-logger                  >= 0.3        && < 0.4
                  , fast-logger                   >= 2.2        && < 2.5
@@ -695,7 +701,7 @@ test-suite test
 
     build-depends: base
                  , {{name}}
-                 , yesod-test >= 1.5.0.1 && < 1.6
+                 , yesod-test >= 1.5.2 && < 1.6
                  , yesod-core
                  , yesod
                  , persistent
@@ -719,7 +725,7 @@ test-suite test
 module Settings where
 
 import ClassyPrelude.Yesod
-import Control.Exception           (throw)
+import qualified Control.Exception as Exception
 import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
                                     (.:?))
 import Data.FileEmbed              (embedFile)
@@ -837,7 +843,8 @@ configSettingsYmlBS = $(embedFile configSettingsYml)
 
 -- | @config/settings.yml@, parsed to a @Value@.
 configSettingsYmlValue :: Value
-configSettingsYmlValue = either throw id $ decodeEither' configSettingsYmlBS
+configSettingsYmlValue = either Exception.throw id
+                       $ decodeEither' configSettingsYmlBS
 
 -- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
 compileTimeAppSettings :: AppSettings
@@ -9404,7 +9411,7 @@ spec = withApp $ do
             statusIs 200
 
             [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
-            assertEqual "Should have " comment (Comment message Nothing)
+            assertEq "Should have " comment (Comment message Nothing)
 
     describe "invalid requests" $ do
         it "400s when the JSON body is invalid" $ do
@@ -9447,32 +9454,34 @@ import TestImport
 
 spec :: Spec
 spec = withApp $ do
-    it "loads the index and checks it looks right" $ do
-        get HomeR
-        statusIs 200
-        htmlAllContain "h1" "Welcome to Yesod"
 
-        request $ do
-            setMethod "POST"
-            setUrl HomeR
-            addToken
-            fileByLabel "Choose a file" "test/Spec.hs" "text/plain" -- talk about self-reference
-            byLabel "What's on the file?" "Some Content"
+    describe "Homepage" $ do
+      it "loads the index and checks it looks right" $ do
+          get HomeR
+          statusIs 200
+          htmlAllContain "h1" "Welcome to Yesod"
 
-        statusIs 200
-        -- more debugging printBody
-        htmlCount ".message" 1
-        htmlAllContain ".message" "Some Content"
-        htmlAllContain ".message" "text/plain"
+          request $ do
+              setMethod "POST"
+              setUrl HomeR
+              addToken
+              fileByLabel "Choose a file" "test/Spec.hs" "text/plain" -- talk about self-reference
+              byLabel "What's on the file?" "Some Content"
 
-    -- This is a simple example of using a database access in a test.  The
-    -- test will succeed for a fresh scaffolded site with an empty database,
-    -- but will fail on an existing database with a non-empty user table.
-    it "leaves the user table empty" $ do
-        get HomeR
-        statusIs 200
-        users <- runDB $ selectList ([] :: [Filter User]) []
-        assertEqual "user table empty" 0 $ length users
+          statusIs 200
+          -- more debugging printBody
+          htmlCount ".message" 1
+          htmlAllContain ".message" "Some Content"
+          htmlAllContain ".message" "text/plain"
+
+      -- This is a simple example of using a database access in a test.  The
+      -- test will succeed for a fresh scaffolded site with an empty database,
+      -- but will fail on an existing database with a non-empty user table.
+      it "leaves the user table empty" $ do
+          get HomeR
+          statusIs 200
+          users <- runDB $ selectList ([] :: [Filter User]) []
+          assertEq "user table empty" 0 $ length users
 
 {-# START_FILE test/Spec.hs #-}
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
@@ -9491,7 +9500,7 @@ import Foundation            as X
 import Model                 as X
 import Test.Hspec            as X
 import Text.Shakespeare.Text (st)
-import Yesod.Default.Config2 (ignoreEnv, loadYamlSettings)
+import Yesod.Default.Config2 (useEnv, loadYamlSettings)
 import Yesod.Test            as X
 
 runDB :: SqlPersistM a -> YesodExample App a
@@ -9508,7 +9517,7 @@ withApp = before $ do
     settings <- loadYamlSettings
         ["config/test-settings.yml", "config/settings.yml"]
         []
-        ignoreEnv
+        useEnv
     foundation <- makeFoundation settings
     wipeDB foundation
     logWare <- liftIO $ makeLogWare foundation
