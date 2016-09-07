@@ -82,6 +82,7 @@ import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
 import Handler.Common
 import Handler.Home
 import Handler.Comment
+import Handler.Profile
 
 -- This line actually creates our YesodDispatch instance. It is the second half
 -- of the call to mkYesodData which occurs in Foundation.hs. Please see the
@@ -234,6 +235,10 @@ import Import.NoFoundation
 import Database.Persist.Sql (ConnectionPool, runSqlPool)
 import Text.Hamlet          (hamletFile)
 import Text.Jasmine         (minifym)
+
+-- Used only when in "auth-dummy-login" setting is enabled.
+import Yesod.Auth.Dummy
+
 import Yesod.Auth.OpenId    (authOpenId, IdentifierType (Claimed))
 import Yesod.Default.Util   (addStaticContentExternal)
 import Yesod.Core.Types     (Logger)
@@ -315,10 +320,13 @@ instance Yesod App where
 
     -- Routes not requiring authentication.
     isAuthorized (AuthR _) _ = return Authorized
+    isAuthorized CommentR _ = return Authorized
+    isAuthorized HomeR _ = return Authorized
     isAuthorized FaviconR _ = return Authorized
     isAuthorized RobotsR _ = return Authorized
-    -- Default to Authorized for now.
-    isAuthorized _ _ = return Authorized
+    isAuthorized (StaticR _) _ = return Authorized
+
+    isAuthorized ProfileR _ = isAuthenticated
 
     -- This function creates static content files in the static folder
     -- and names them based on a hash of their content. This allows
@@ -377,9 +385,19 @@ instance YesodAuth App where
                 }
 
     -- You can add other plugins like Google Email, email or OAuth here
-    authPlugins _ = [authOpenId Claimed []]
+    authPlugins app = [authOpenId Claimed []] ++ extraAuthPlugins
+        -- Enable authDummy login if enabled.
+        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
 
     authHttpManager = getHttpManager
+
+-- | Access function to determine if a user is logged in.
+isAuthenticated :: Handler AuthResult
+isAuthenticated = do
+    muid <- maybeAuthId
+    return $ case muid of
+        Nothing -> Unauthorized "You must login to access this page"
+        Just _ -> Authorized
 
 instance YesodAuthPersist App
 
@@ -490,6 +508,18 @@ sampleForm = renderBootstrap3 BootstrapBasicForm $ (,)
 commentIds :: (Text, Text, Text)
 commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
 
+{-# START_FILE Handler/Profile.hs #-}
+module Handler.Profile where
+
+import Import
+
+getProfileR :: Handler Html
+getProfileR = do
+    (_, user) <- requireAuthPair
+    defaultLayout $ do
+        setTitle . toHtml $ userIdent user <> "'s User page"
+        $(widgetFile "profile")
+
 {-# START_FILE Import.hs #-}
 module Import
     ( module Import
@@ -558,6 +588,7 @@ library
                      Handler.Common
                      Handler.Home
                      Handler.Comment
+                     Handler.Profile
 
     if flag(dev) || flag(library-only)
         cpp-options:   -DDEVELOPMENT
@@ -641,6 +672,7 @@ test-suite test
     other-modules:     Handler.CommentSpec
                        Handler.CommonSpec
                        Handler.HomeSpec
+                       Handler.ProfileSpec
                        TestImport
     hs-source-dirs:    test
     ghc-options:       -Wall
@@ -664,6 +696,7 @@ test-suite test
 
     build-depends: base
                  , {{name}}
+                 , yesod-auth
                  , yesod-test >= 1.5.2 && < 1.6
                  , yesod-core
                  , yesod
@@ -735,6 +768,9 @@ data AppSettings = AppSettings
     -- ^ Copyright text to appear in the footer of the page
     , appAnalytics              :: Maybe Text
     -- ^ Google Analytics code
+
+    , appAuthDummyLogin         :: Bool
+    -- ^ Indicate if auth dummy login should be enabled.
     }
 
 instance FromJSON AppSettings where
@@ -758,8 +794,10 @@ instance FromJSON AppSettings where
         appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
         appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
 
-        appCopyright              <- o .: "copyright"
+        appCopyright              <- o .:  "copyright"
         appAnalytics              <- o .:? "analytics"
+
+        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= defaultDev
 
         return AppSettings {..}
 
@@ -1084,6 +1122,8 @@ User-agent: *
 
 /comments CommentR POST
 
+/profile ProfileR GET
+
 {-# START_FILE config/settings.yml #-}
 # Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
 # See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
@@ -1100,12 +1140,12 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # Optional values with the following production defaults.
 # In development, they default to the inverse.
 #
-# development: false
 # detailed-logging: false
 # should-log-all: false
 # reload-templates: false
 # mutable-static: false
 # skip-combining: false
+# auth-dummy-login : false
 
 # NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
 # See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
@@ -1128,6 +1168,8 @@ database:
   #
   #   database: "_env:SQLITE_DATABASE:{{name}}_test.sqlite3"
   database: {{name}}_test.sqlite3
+
+auth-dummy-login: true
 
 {-# START_FILE static/css/bootstrap.css #-}
 /*!
@@ -9154,6 +9196,12 @@ $maybe msg <- mmsg
     <tt>config/routes
 
   <span .list-group-item>
+    We can link to other handlers, like the <a href="@{ProfileR}">Profile</a>. Try it out as an anonymous user and see
+    the access denied. Then, try to <a href="@{AuthR LoginR}">login</a> with the dummy authentication added
+    while in development.
+
+
+  <span .list-group-item>
     The HTML you are seeing now is actually composed by a number of <em>widgets</em>, #
     most of them are brought together by the <tt>defaultLayout</tt> function which #
     is defined in the <tt>Foundation.hs</tt> module, and used by <tt>#{handlerName}</tt>. #
@@ -9268,6 +9316,16 @@ footer {
     height: 100px;
 }
 
+{-# START_FILE templates/profile.hamlet #-}
+<h1>
+  Access granted!
+
+<p>
+  This page is protected and access is allowed only for authenticated users.
+
+<p>
+  Your data is protected with us <strong><span class="username">#{userIdent user}</span></strong>!
+
 {-# START_FILE test/Handler/CommentSpec.hs #-}
 module Handler.CommentSpec (spec) where
 
@@ -9339,7 +9397,7 @@ spec :: Spec
 spec = withApp $ do
 
     describe "Homepage" $ do
-      it "loads the index and checks it looks right" $ do
+        it "loads the index and checks it looks right" $ do
           get HomeR
           statusIs 200
           htmlAllContain "h1" "Welcome to Yesod"
@@ -9357,14 +9415,42 @@ spec = withApp $ do
           htmlAllContain ".message" "Some Content"
           htmlAllContain ".message" "text/plain"
 
-      -- This is a simple example of using a database access in a test.  The
-      -- test will succeed for a fresh scaffolded site with an empty database,
-      -- but will fail on an existing database with a non-empty user table.
-      it "leaves the user table empty" $ do
+        -- This is a simple example of using a database access in a test.  The
+        -- test will succeed for a fresh scaffolded site with an empty database,
+        -- but will fail on an existing database with a non-empty user table.
+        it "leaves the user table empty" $ do
           get HomeR
           statusIs 200
           users <- runDB $ selectList ([] :: [Filter User]) []
           assertEq "user table empty" 0 $ length users
+
+{-# START_FILE test/Handler/ProfileSpec.hs #-}
+module Handler.ProfileSpec (spec) where
+
+import TestImport
+
+spec :: Spec
+spec = withApp $ do
+
+    describe "Profile page" $ do
+        it "asserts no access to my-account for anonymous users" $ do
+            get ProfileR
+            statusIs 403
+
+        it "asserts access to my-account for authenticated users" $ do
+            userEntity <- createUser "foo"
+            authenticateAs userEntity
+
+            get ProfileR
+            statusIs 200
+
+        it "asserts user's information is shown" $ do
+            userEntity <- createUser "bar"
+            authenticateAs userEntity
+
+            get ProfileR
+            let (Entity _ user) = userEntity
+            htmlAnyContain ".username" . unpack $ userIdent user
 
 {-# START_FILE test/Spec.hs #-}
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
@@ -9383,6 +9469,7 @@ import Foundation            as X
 import Model                 as X
 import Test.Hspec            as X
 import Yesod.Default.Config2 (useEnv, loadYamlSettings)
+import Yesod.Auth            as X
 import Yesod.Test            as X
 
 -- Wiping the database
@@ -9444,4 +9531,22 @@ getTables :: MonadIO m => ReaderT SqlBackend m [Text]
 getTables = do
     tables <- rawSql "SELECT name FROM sqlite_master WHERE type = 'table';" []
     return (fmap unSingle tables)
+
+-- | Authenticate as a user. This relies on the `auth-dummy-login: true` flag
+-- being set in test-settings.yaml, which enables dummy authentication in
+-- Foundation.hs
+authenticateAs :: Entity User -> YesodExample App ()
+authenticateAs (Entity _ u) = do
+    request $ do
+        setMethod "POST"
+        addPostParam "ident" $ userIdent u
+        setUrl $ AuthR $ PluginR "dummy" []
+
+-- | Create a user.
+createUser :: Text -> YesodExample App (Entity User)
+createUser ident = do
+    runDB $ insertEntity User
+        { userIdent = ident
+        , userPassword = Nothing
+        }
 
