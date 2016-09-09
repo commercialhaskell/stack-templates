@@ -58,6 +58,9 @@ simple-hpack:
 simple-library:
   description:
 
+spock:
+  description: a lightweight web framework
+
 tasty-discover:
   description:
 
