@@ -22,6 +22,21 @@ executable {{name}}
                      , mtl
                      , text
 
+{-# START_FILE stack.yaml #-}
+resolver: lts-6.16
+packages:
+- '.'
+- location:
+    git: "https://github.com/agrafix/Spock.git"
+    commit: "HEAD"
+  subdirs:
+    - Spock
+    - Spock-core
+    - reroute
+extra-deps: []
+flags: {}
+extra-package-dbs: []
+
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
