@@ -39,6 +39,7 @@ excluded =
   "ghcjs" : -- ghcjs takes too long to setup
   "quickcheck-test-framework" : -- test-suite fails (probably intentionally)
   "simple-hpack" : -- stack init fails on missing cabal file (fixed in stack on master)
+  "spock" : -- contains a stack file, makes `stack new` choke
   "tasty-discover" : -- contains a stack file, makes `stack new` choke
   "yesod-mongo" : -- needs a running db instance
   "yesod-mysql" : -- needs a running db instance
