@@ -65,7 +65,7 @@ main = do
       inTempDirectory $ do
         callCommand ("stack new test-project " ++ hsfile ++ " --no-terminal")
         setCurrentDirectory "test-project"
-        callCommand "stack test --fast --no-terminal"
+        callCommand "stack test --fast --no-terminal --install-ghc"
 
 withHsfiles :: ([FilePath] -> IO ()) -> IO ()
 withHsfiles action = withCli $ \ (args :: [FilePath]) -> do
