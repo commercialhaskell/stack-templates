@@ -73,9 +73,6 @@ unicode-syntax-exe:
 unicode-syntax-lib:
   description:
 
-yesod-hello-world:
-  description:
-
 yesod-minimal:
   description:
 
