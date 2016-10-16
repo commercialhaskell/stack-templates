@@ -50,10 +50,10 @@ servant-docker:
   description:
 
 sheyll-library:
-  description: a library with hspec tests, criterion benchmarks and many extensions (GHC8) and a few dependencies, as well as a .travis.yml file
+  description: a library with hspec tests, criterion benchmarks, many extensions (GHC8), a few dependencies and a .travis.yml file
 
 sheyll-network-service-library:
-  description: a library with hspec tests, criterion benchmarks and many extensions (GHC8) and many dependencieshelpful to build concurrent network services, as well as a .travis.yml file
+  description: a complex library (GHC8) encompassing resource management, networking and concurrency, based on sheyll-library
 
 simple:
   description:
