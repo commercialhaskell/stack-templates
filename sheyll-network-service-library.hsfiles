@@ -19,7 +19,7 @@ cabal-version:       >=1.24
 
 flag printfdebugging
   description: Build with printf-debugging code snippets enabled
-  default:     True
+  default:     False
 
 flag cibuild
   description: Disable memory- or CPU-intensive tests and benchmarks e.g. for CI builds on travis
