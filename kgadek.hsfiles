@@ -400,7 +400,7 @@ version:             0.0.0.1
 synopsis:            Initial project template from stack
 description:         Please see README.rst
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
-license:             BSD3
+license:             BSD2
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
