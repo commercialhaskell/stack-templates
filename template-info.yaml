@@ -19,6 +19,9 @@ haskeleton:
 hspec:
   description: a testing framework for Haskell inspired by the Ruby library RSpec
 
+kgadek:
+  description: Fancy new-template, with Hspec (QuickCheck, HUnit) and Criterion.
+
 new-template:
   description:
 

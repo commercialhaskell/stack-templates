@@ -1,0 +1,516 @@
+{-# START_FILE Guardfile #-}
+# vim: set syntax=ruby:
+
+################################################################################
+# ABOUT
+################################################################################
+#
+# Guard[1] configuration.
+# 
+#     Guard is a command line tool to easily handle events on
+#     file system modifications.
+#
+# First, you need a Ruby. I'm assuming rbenv[2] is already installed. Then, the
+# process goes as follows::
+#
+#     rbenv install 2.3.1
+#     rbenv local 2.3.1
+#     eval "$(rbenv init -)"    # To make freshly installed Ruby visible in
+#                               # current terminal.
+#     gem install guard-shell colorize artii colorize ruby-terminfo
+#
+# Links:
+# [1]: https://github.com/guard/guard
+# [2]: https://github.com/rbenv/rbenv
+#
+#
+################################################################################
+# CONFIGURATION
+################################################################################
+
+$tests_compiled = true
+$tests_compiled_coverage = true
+
+################################################################################
+# THE ACTUAL DSL
+################################################################################
+
+require './guard_tools.rb'
+
+group :haskell, halt_on_fail: true do
+
+  guard :shell do
+
+    watch(%r{^(src|test|bench)/.*\.hs$}) do |m|
+      lastbuildguard(m[0]) do
+        if $tests_compiled
+          section "tests (c)" do
+            command_interactive "stack test"
+            coverage("{{name}}-test")
+          end
+        else
+          section "tests (i)" do
+            command_interactive "stack exec -- runhaskell -isrc -itest test/Spec.hs"
+          end
+        end
+      end
+    end
+
+  end
+
+  guard :shell do
+
+    watch(%r{^(.*\.cabal|stack.yaml)$}) do |m|
+      lastbuildguard(m[0]) do
+        section "project" do
+          command_interactive "stack build --test --no-run-tests --bench --no-run-benchmarks"
+        end
+      end
+    end
+
+    watch(%r{^app/.*\.hs$}) do |m|
+      lastbuildguard(m[0]) do
+        section "app" do
+          command_interactive "stack install"
+        end
+      end
+    end
+
+    watch(%r{^bench/.*\.hs$}) do |m|
+      section "bench" do
+        command_interactive "stack build --bench"
+      end
+    end
+
+  end
+end
+
+
+# In case of strange errors, this hammer seems to work well:
+#
+#     rm -rf .stack-work .hpc *.tix hpc_report
+#
+
+def coverage(project_name)
+  section "coverage", "rm -rf hpc_report", :condition => $tests_compiled_coverage, :noexception => true do
+    hpc_excluded_modules = ((Dir.glob("test/**/*Spec.hs")          # skip all test-spec files
+                                .map { |k| k.gsub(/^test\//, "")     # ...converting path to namespace for HPC
+                                            .gsub(/\.hs$/,"")
+                                            .gsub("/",".")
+                                     }
+                            ) << "Main"                            # and skip "Main", the entrypoint for tests
+                           ).map{|k| "--exclude=#{k}" }.join(" ")
+    command_interactive "hpc report #{project_name}.tix #{hpc_excluded_modules}"
+    command_interactive "hpc markup #{project_name}.tix --destdir=hpc_report #{hpc_excluded_modules}"
+  end
+end
+
+{-# START_FILE LICENSE #-}
+Copyright (c) {{year}}{{^year}}2016{{/year}}, {{author-name}}{{^author-name}}Author name here{{/author-name}}
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice, this
+     list of conditions and the following disclaimer.
+     
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+THIS SOFTWARE  IS PROVIDED  BY THE  COPYRIGHT HOLDERS  AND CONTRIBUTORS  "AS IS"
+AND  ANY EXPRESS  OR  IMPLIED WARRANTIES,  INCLUDING, BUT  NOT  LIMITED TO,  THE
+IMPLIED WARRANTIES OF  MERCHANTABILITY AND FITNESS FOR A  PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT,  INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,  OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT  NOT LIMITED  TO, PROCUREMENT OF  SUBSTITUTE GOODS  OR SERVICES;
+LOSS OF USE,  DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  HOWEVER CAUSED AND ON
+ANY  THEORY  OF  LIABILITY,  WHETHER  IN CONTRACT,  STRICT  LIABILITY,  OR  TORT
+(INCLUDING NEGLIGENCE OR  OTHERWISE) ARISING IN ANY  WAY OUT OF THE  USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE README.rst #-}
+============
+ The header
+============
+---------------
+ The subheader
+---------------
+:Author: {{author-name}}{{^author-name}}Author name here{{/author-name}}
+
+.. contents::
+
+
+First section
+=============
+
+Second section
+==============
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE app/Main.hs #-}
+module Main where
+
+
+-- {{name}}
+import           Lib (foo, bar)
+
+
+main :: IO ()
+main = do
+    foo
+    print . bar $ 123
+
+{-# START_FILE bench/Bench.hs #-}
+module Main (
+    main
+) where
+
+
+-- criterion
+import           Criterion      (Benchmark, bench, nf)
+import           Criterion.Main (bgroup, defaultMain)
+
+-- {{name}}
+import qualified Lib as N
+
+
+benchBar :: [Benchmark]
+benchBar = [
+      bench "bar 1" $ nf N.bar 1 
+    , bench "bar 2" $ nf N.bar 2 
+    ]
+
+main :: IO ()
+main = 
+    defaultMain [
+      bgroup "group A" [
+          bench "2" $ nf   const (2::Int)
+      ]
+    , bgroup "group B" benchBar
+    ]
+
+{-# START_FILE guard_tools.rb #-}
+# vim: set syntax=ruby:
+
+require 'colorize'
+require 'artii'
+require 'terminfo'
+require 'pty'
+require 'open3'
+require 'time'
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Circuit breaker. Prevents the script from running multiple times, i.a. for
+# a file saved multiple times.
+
+# arbitrary small sleep time to ensure the "save all" is done
+$lastbuildguard_epsilon = 1.0/10.0
+$lastbuildguard_lastbuild = Time.now
+
+def lastbuildguard(trigger, &block)
+  begin
+    sleep $lastbuildguard_epsilon
+
+    if File.mtime(trigger) < $lastbuildguard_lastbuild
+      puts "File #{trigger} modified before last build, so rebuilding is unnecessary".starsaround.green
+    else
+      $lastbuildguard_lastbuild = Time.now
+      puts "\nBuilding at #{$lastbuildguard_lastbuild}\n"
+      block.call()
+      puts "\nBuild finished at #{Time.now}\n"
+    end
+  rescue SystemCallError => e
+    puts "The run triggered by #{trigger} caused an error"
+  end
+end
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# String formatting, guerrilla-style.
+
+class String
+  def self.linefill_length
+    TermInfo.screen_size[1]
+  end
+
+  def starfill
+    x = self
+    linefill_length = TermInfo.screen_size[1]
+    if length % 2 != linefill_length % 2
+      x = x + " "
+    end
+    x.ljust(linefill_length, " *")
+  end
+
+  def linefill
+    linefill_length = TermInfo.screen_size[1]
+    ljust(linefill_length, '-')
+  end
+
+  def self.starline
+    linefill_length = TermInfo.screen_size[1]
+    "*".ljust(linefill_length, " *")
+  end
+
+  def starsaround
+    linefill_length = TermInfo.screen_size[1]
+    stars = "*".ljust(linefill_length, " *")
+    replace (stars + "\n" + self + "\n" + stars)
+  end
+
+  def starsallaround
+    starfill.starsaround
+  end
+
+  def nocolourcodes
+    gsub(/\e\[(\d+)(;\d+)*m/,'')
+  end
+
+  # Used for mulitline strings with variable line length
+  def center_with_strlen(strlen)
+    linefill_length = TermInfo.screen_size[1]
+    len = linefill_length - strlen
+    len = 0 if len < 0
+    " " * (len / 2) + self
+  end
+end
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Run command. Measure execution time, print stdout+stderr and return code.
+
+def command_interactive(cmd)
+  puts String.starline.blue
+  puts ("$ #{cmd}".blue + " 2>&1".yellow)
+
+  stdout_empty = true
+  
+  start = Time.now
+  begin
+    PTY.spawn( cmd ) do |stdin, stdout, pid|
+      begin
+        puts "* * STDOUT & STDERR".starfill.blue
+        stdin.each { |line| 
+          stdout_empty = false
+          puts "  * ".blue + line
+        }
+      rescue Errno::EIO
+      end
+      Process.wait(pid)
+    end
+  rescue PTY::ChildExited
+    puts "  * Strange, the child process exited...".starsaround.red
+  end
+  finish = Time.now
+
+  puts "  * ".blue + "STDOUT: none".black if stdout_empty
+
+  diff = finish - start
+  puts String.starline.blue
+  if diff > 5 then puts ("  * ".blue + ("exec time: %.2f sec" % diff))
+              else puts ("  * ".blue + ("exec time: %.2f sec" % diff).black)
+  end
+
+  if $?.exitstatus === 0  then puts ("  * ".blue + "exit code: #{$?.exitstatus}".black)
+                          else puts "  * exit code: #{$?.exitstatus}".starsaround.red
+  end
+
+  if $?.exitstatus != 0
+    unless $!.nil?
+      raise SystemCallError.new("Execution of `#{cmd}` failed with error code: #{$!.exitstatus}")
+    else
+      raise SystemCallError.new("Execution of `#{cmd}` failed")
+    end
+  end
+end
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Run command. Measure execution time, print stdout+stderr and return code.
+# Passes input (stdin) if provided.
+
+def command_withinput(cmd, inp=nil)
+  puts "$ #{cmd}".starsaround.blue
+
+  start = Time.now
+  stdout, stderr, status = Open3.capture3(cmd, :stdin_data=>inp)
+  finish = Time.now
+  diff = finish - start
+
+  if diff > 5 then puts ("  * ".blue + ("exec time: %.2f sec" % diff))
+              else puts ("  * ".blue + ("exec time: %.2f sec" % diff).black)
+  end
+
+  if status.exitstatus === 0 then puts ("  * ".blue + "exit code: #{status.exitstatus}".black)
+                             else puts ("  * ".blue + "exit code: #{status.exitstatus}".light_white)
+  end
+
+  unless stdout.empty?
+    puts "* * STDOUT".starfill.green
+    puts stdout.each_line.map {|l| "  * ".green + l}.join
+  else
+    puts "  * ".green + "STDOUT: none".black
+  end
+
+  unless stderr.empty?
+    puts "* * STDERR".starsallaround.red
+    puts stderr.each_line.map {|l| "  * ".red + l}.join
+  end
+
+  if status.exitstatus != 0
+    raise SystemCallError.new("Execution of `#{cmd}` failed with error code: #{status.exitstatus}")
+  end
+end
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# Pretty-printer of sections.
+
+def section(name, *cmds, condition: true, noexception: false, &block)
+  if condition
+    begin
+      grace = Artii::Base.new :font => 'univers'
+      ascii_lines = grace.asciify(name).each_line
+      ascii = ascii_lines.map { |line| line.center_with_strlen( ascii_lines.map(&:length).max ) }.join.cyan
+
+      puts "".linefill.cyan
+      puts ascii.cyan
+      puts "".linefill.cyan
+
+      cmds.map do |c| command_withinput(c) end
+
+      block.call() unless block.nil?
+    rescue SystemCallError => e
+      unless noexception
+        newe = $!.exception("Error in section '#{name}'\n#{$!}")
+        raise newe
+      end
+    end
+  end
+end
+
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.0.0.1
+synopsis:            Initial project template from stack
+description:         Please see README.rst
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{year}}{{^year}}2016{{/year}}, {{author-name}}{{^author-name}}Author name here{{/author-name}}
+category:            Other
+build-type:          Simple
+-- extra-source-files:
+cabal-version:       >=1.10
+
+description:
+  Some description here.
+
+library
+  hs-source-dirs:      src
+  exposed-modules:     Lib
+  build-depends:       base >= 4.7 && < 5
+  default-language:    Haskell2010
+
+executable {{name}}-exe
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  build-depends:       base
+                     , {{name}}
+  default-language:    Haskell2010
+
+test-suite {{name}}-test
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test src
+  main-is:             Spec.hs
+  build-depends:       base
+                     , {{name}}
+                     , hspec
+                     , HUnit
+                     , QuickCheck
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N -fhpc
+  default-language:    Haskell2010
+  other-modules:       Lib
+                     , Lib.LibSpec
+
+benchmark {{name}}-criterion
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      bench
+  main-is:             Bench.hs
+  build-depends:       base
+                     , {{name}}
+                     , criterion
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE src/Lib.hs #-}
+module Lib (
+  foo
+, bar
+) where
+
+
+foo :: IO ()
+foo = putStrLn "foo"
+
+bar :: Int -> Int
+bar = (1+)
+
+{-# START_FILE test/Lib/LibSpec.hs #-}
+module Lib.LibSpec (spec) where
+
+-- Hspec
+import           Test.Hspec (Spec, describe, it)
+
+-- HUnit
+import           Test.HUnit ((@?=))
+
+-- QuickCheck
+import           Test.QuickCheck (property)
+
+-- {{name}}
+import qualified Lib as N
+
+
+spec :: Spec
+spec =
+  describe "Lib" $
+    describe "Lib.bar" $ do
+      it "works with positive ints" $
+        5 @?= N.bar 4
+      it "works with negative ints" $ 0 @?= N.bar (-1)
+      it "prop: is equal to lambda" . property $
+        \x -> (x + 1) @?= N.bar x
+
+{-# START_FILE test/Spec.hs #-}
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+
+{-# START_FILE .gitignore #-}
+## Build and test artifacts
+
+.stack-work/
+*.tix
+.hpc/
+hpc_report/
+tags
+*.prof
+*.hp
+*.eventlog
+
+## Temp files
+
+*.DS_Store
+*~
+.Trash-*
