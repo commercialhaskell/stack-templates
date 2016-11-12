@@ -1,7 +1,7 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            UnicodeSyntax library template from stack
+-- synopsis:            UnicodeSyntax library template from stack
 description:         Please see README.md
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
