@@ -56,3 +56,9 @@ author:              {{author-name}}{{^author-name}}Author name here{{/author-na
 ## `template-info.yaml`
 
 When contributing a new template, please remember to add a corresponding entry to `template-info.yaml`. Additional descriptive information for the template may be provided, but is not required.
+
+## Yesod templates
+
+NOTE: The Yesod templates are generated from the
+[yesod-scaffold repo](https://github.com/yesodweb/yesod-scaffold). Please
+send pull requests for those templates to that repo instead.
