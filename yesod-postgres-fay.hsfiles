@@ -4,26 +4,6 @@
  (hamlet-mode . ((hamlet/basic-offset . 4)
                  (haskell-process-use-ghci . t))))
 
-{-# START_FILE .ghci #-}
-:set -i.:config:dist/build/autogen
-:set -DDEVELOPMENT
-:set -XCPP
-:set -XDeriveDataTypeable
-:set -XEmptyDataDecls
-:set -XFlexibleContexts
-:set -XGADTs
-:set -XGeneralizedNewtypeDeriving
-:set -XMultiParamTypeClasses
-:set -XNoImplicitPrelude
-:set -XNoMonomorphismRestriction
-:set -XOverloadedStrings
-:set -XQuasiQuotes
-:set -XRecordWildCards
-:set -XTemplateHaskell
-:set -XTupleSections
-:set -XTypeFamilies
-:set -XViewPatterns
-
 {-# START_FILE .gitignore #-}
 dist*
 static/tmp/
@@ -723,6 +703,7 @@ library
                 ViewPatterns
                 TupleSections
                 RecordWildCards
+                CPP
 
     build-depends:
                    -- Due to a bug in GHC 8.0.1, we block its usage
@@ -778,6 +759,24 @@ executable         {{name}}
 
     ghc-options:       -threaded -rtsopts -with-rtsopts=-N
 
+    extensions: TemplateHaskell
+                QuasiQuotes
+                OverloadedStrings
+                NoImplicitPrelude
+                MultiParamTypeClasses
+                TypeFamilies
+                GADTs
+                GeneralizedNewtypeDeriving
+                FlexibleContexts
+                FlexibleInstances
+                EmptyDataDecls
+                NoMonomorphismRestriction
+                DeriveDataTypeable
+                ViewPatterns
+                TupleSections
+                RecordWildCards
+                CPP
+
 test-suite test
     type:              exitcode-stdio-1.0
     main-is:           Spec.hs
@@ -793,7 +792,6 @@ test-suite test
                 QuasiQuotes
                 OverloadedStrings
                 NoImplicitPrelude
-                CPP
                 MultiParamTypeClasses
                 TypeFamilies
                 GADTs
@@ -805,6 +803,8 @@ test-suite test
                 DeriveDataTypeable
                 ViewPatterns
                 TupleSections
+                RecordWildCards
+                CPP
 
     build-depends: base
                  , {{name}}
