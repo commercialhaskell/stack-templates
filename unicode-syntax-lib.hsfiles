@@ -11,6 +11,7 @@ maintainer:          {{author-email}}{{^author-email}}example@example.com{{/auth
 copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Data{{/category}}
 build-type:          Simple
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library

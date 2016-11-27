@@ -9,6 +9,8 @@ author:              {{author-name}}{{^author-name}}Author name here{{/author-na
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
 copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
+extra-source-files:
+- README.md
 
 dependencies:
   - base >= 4.7 && < 5
