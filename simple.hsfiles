@@ -12,6 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 cabal-version:       >=1.10
+extra-source-files:  README.md
 
 executable {{name}}
   hs-source-dirs:      src
