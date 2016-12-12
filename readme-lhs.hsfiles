@@ -46,7 +46,7 @@ filewatcher '**/*.{lhs,hs,cabal}' 'stack install && echo "built" && readme | pan
 {-# START_FILE {{name}}.cabal #-}
 name:                  {{name}}
 version:               0.1.0.0
-synopsis:              TODO Initial project template from stack
+-- synopsis:              TODO Initial project template from stack
 description:           readme.lhs
 homepage:              https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 license:               BSD3

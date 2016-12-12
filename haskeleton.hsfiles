@@ -5,7 +5,7 @@
 
 name:           {{ name }}
 version:        0.0.0
-synopsis:       A new Haskeleton package.
+-- synopsis:       A new Haskeleton package.
 description:    {{ name }} is a new Haskeleton package.
 category:       Other
 homepage:       https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}#readme
@@ -115,7 +115,7 @@ library:
 license: MIT
 maintainer: {{author-name}}{{^author-name}}Author name here{{/author-name}}
 name: {{ name }}
-synopsis: A new Haskeleton package.
+-- synopsis: A new Haskeleton package.
 tests:
   {{ name }}-test-suite:
     dependencies:
