@@ -92,7 +92,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
-    -- See http://www.yesodweb.com/blog/2016/11/use-mysql-safely-in-yesod
+    -- See http://www.yesodweb.com/blog/2017/11/use-mysql-safely-in-yesod
     MySQL.initLibrary
 
     -- We need a log function to create a connection pool. We need a connection
@@ -147,7 +147,7 @@ forkOSWithUnmask io = forkOS (io unsafeUnmask)
 
 -- | Warp settings for the given foundation value.
 -- Use bound threads for thread-safe use of MySQL, and initialise and finalise
--- them: see http://www.yesodweb.com/blog/2016/11/use-mysql-safely-in-yesod
+-- them: see http://www.yesodweb.com/blog/2017/11/use-mysql-safely-in-yesod
 warpSettings :: App -> Settings
 warpSettings foundation =
       setPort (appPort $ appSettings foundation)
@@ -1280,13 +1280,13 @@ auth-dummy-login: true
 /*!
  * bootswatch v3.3.7
  * Homepage: http://bootswatch.com
- * Copyright 2012-2016 Thomas Park
+ * Copyright 2012-2017 Thomas Park
  * Licensed under MIT
  * Based on Bootstrap
 */
 /*!
  * Bootstrap v3.3.7 (http://getbootstrap.com)
- * Copyright 2011-2016 Twitter, Inc.
+ * Copyright 2011-2017 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
  */
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
@@ -8887,7 +8887,7 @@ Rj3IzE8YKgGEh8OmOkN4KuO6GYyNnRhoWNSgmY9+VfMfhBm7xIwZPp7ggg==
 <glyph unicode="&#xe199;" d="M100 200h400v-155l-75 -45h350l-75 45v155h400l-270 300h170l-270 300h170l-300 333l-300 -333h170l-270 -300h170z" />
 <glyph unicode="&#xe200;" d="M121 700q0 -53 28.5 -97t75.5 -65q-4 -16 -4 -38q0 -74 52.5 -126.5t126.5 -52.5q56 0 100 30v-306l-75 -45h350l-75 45v306q46 -30 100 -30q74 0 126.5 52.5t52.5 126.5q0 24 -9 55q50 32 79.5 83t29.5 112q0 90 -61.5 155.5t-150.5 71.5q-26 89 -99.5 145.5 t-167.5 56.5q-116 0 -197.5 -81.5t-81.5 -197.5q0 -4 1 -11.5t1 -11.5q-14 2 -23 2q-74 0 -126.5 -52.5t-52.5 -126.5z" />
 </font>
-</defs></svg> 
+</defs></svg>
 {-# START_FILE BASE64 static/fonts/glyphicons-halflings-regular.ttf #-}
 AAEAAAARAQAABAAQRkZUTWpVwvAAAAEcAAAAHEdERUYBCAAEAAABOAAAACBPUy8yZ6dLhAAAAVgA
 AABgY21hcErwCZoAAAG4AAACcmN2dCAAKAOHAAAELAAAAAhmcGdtU7QvpwAABDQAAAJlZ2FzcAAA
