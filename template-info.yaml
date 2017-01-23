@@ -1,6 +1,9 @@
 chrisdone:
   description:
 
+foundation:
+  description: Project based on llternative prelude with batteries and no dependencies.
+
 franklinchen:
   description:
 
