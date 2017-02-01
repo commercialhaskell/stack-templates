@@ -29,7 +29,7 @@ quickcheck-test-framework:
   description: a library for random testing of program properties
 
 readme-lhs:
-  description:
+  description: small scale, quick start, literate haskell projects
 
 rubik:
   description:
