@@ -62,7 +62,7 @@ spock:
   description: a lightweight web framework
 
 tasty-discover:
-  description:
+  description: a project with tasty-discover with setup
 
 tasty-travis:
   description:
