@@ -1,8 +1,8 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            tasty-discover based template from stack
-description:         Please see README.md
+-- synopsis:
+-- description:
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE

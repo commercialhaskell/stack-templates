@@ -5,8 +5,8 @@
 
 name:           {{ name }}
 version:        0.0.0
-synopsis:       A new Haskeleton package.
-description:    {{ name }} is a new Haskeleton package.
+-- synopsis:
+-- description:
 category:       Other
 homepage:       https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}#readme
 bug-reports:    https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/issues

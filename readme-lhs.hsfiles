@@ -32,10 +32,8 @@ name:
   {{name}}
 version:
   0.1.0.0
-synopsis:
-  See readme.lhs
-description:
-  See readme.lhs for description.
+-- synopsis:
+-- description:
 category:
   project
 homepage:
@@ -60,7 +58,7 @@ library
   default-language:
     Haskell2010
   ghc-options:
-  hs-source-dirs:      
+  hs-source-dirs:
 
   exposed-modules:
 
