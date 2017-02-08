@@ -24,6 +24,9 @@ executable {{name}}
 import Distribution.Simple
 main = defaultMain
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE src/Main.hs #-}
 module Main where
 
