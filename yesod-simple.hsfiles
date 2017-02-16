@@ -324,6 +324,10 @@ instance Yesod App where
 
     makeLogger = return . appLogger
 
+    -- Provide proper Bootstrap styling for default displays, like
+    -- error pages
+    defaultMessageWidget title body = $(widgetFile "default-message-widget")
+
 -- Define breadcrumbs.
 instance YesodBreadcrumbs App where
   breadcrumb HomeR = return ("Home", Nothing)
@@ -520,7 +524,7 @@ library
                                               || >= 4.9.1.0    && < 5
 
                  , yesod                         >= 1.4.3      && < 1.5
-                 , yesod-core                    >= 1.4.17     && < 1.5
+                 , yesod-core                    >= 1.4.30     && < 1.5
                  , yesod-static                  >= 1.4.0.3    && < 1.6
                  , yesod-form                    >= 1.4.0      && < 1.5
                  , classy-prelude                >= 0.10.2
@@ -9960,6 +9964,14 @@ $newline never
 #message {
     margin-bottom: 40px;
 }
+
+{-# START_FILE templates/default-message-widget.hamlet #-}
+<div .container>
+  <div .row>
+    <div .col-md-2>
+    <div .col-md-8>
+      <h1>#{title}
+      ^{body}
 
 {-# START_FILE templates/homepage.hamlet #-}
 <div .masthead>
