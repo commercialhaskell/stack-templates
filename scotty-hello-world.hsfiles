@@ -10,7 +10,7 @@ executable          {{name}}
     ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5
-                  , scotty >= 0.10.0 && < 0.11
+                  , scotty
 
 {-# START_FILE Main.hs #-}
 {-# LANGUAGE OverloadedStrings #-}

@@ -35,6 +35,7 @@ import           WithCli
 
 excluded :: [String]
 excluded =
+  "foundation" : -- foundation package is not available on stackage
   "ghcjs-old-base" : -- ghcjs takes too long to setup
   "ghcjs" : -- ghcjs takes too long to setup
   "quickcheck-test-framework" : -- test-suite fails (probably intentionally)
