@@ -84,7 +84,11 @@ spec = with app $ do
 
   describe "GET /some-json" $ do
     it "responds with some JSON" $ do
-      get "/some-json" `shouldRespondWith` [json|{foo: 23, bar: 42}|]
+      get "/some-json" `shouldRespondWith` expectedJsonResponse
+
+expectedJsonResponse = 
+  let ResponseMatcher status headers body = [json|{foo: 23, bar: 42}|]
+  in ResponseMatcher status [hContentType <:> "application/json; charset=utf-8"] body
 
 {-# START_FILE src/Example.hs #-}
 {-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
