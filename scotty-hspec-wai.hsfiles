@@ -40,6 +40,7 @@ test-suite {{name}}-test
                      , hspec
                      , hspec-wai
                      , hspec-wai-json
+                     , http-types
                      , aeson
   ghc-options:         -threaded -O2 -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
@@ -60,6 +61,7 @@ module Main (main) where
 import           Test.Hspec
 import           Test.Hspec.Wai
 import           Test.Hspec.Wai.JSON
+import           Network.HTTP.Types.Header
 import           Data.Aeson (Value(..), object, (.=))
 
 import           Example (app)
@@ -84,7 +86,11 @@ spec = with app $ do
 
   describe "GET /some-json" $ do
     it "responds with some JSON" $ do
-      get "/some-json" `shouldRespondWith` [json|{foo: 23, bar: 42}|]
+      get "/some-json" `shouldRespondWith` expectedJsonResponse
+
+expectedJsonResponse = 
+  let ResponseMatcher status headers body = [json|{foo: 23, bar: 42}|]
+  in ResponseMatcher status [hContentType <:> "application/json; charset=utf-8"] body
 
 {-# START_FILE src/Example.hs #-}
 {-# LANGUAGE OverloadedStrings, QuasiQuotes #-}

@@ -46,9 +46,6 @@ scotty-hspec-wai:
 servant:
   description: a set of packages for declaring web APIs at the type-level
 
-servant-0.4:
-  description:
-
 servant-docker:
   description:
 
