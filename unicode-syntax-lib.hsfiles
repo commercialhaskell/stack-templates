@@ -37,6 +37,9 @@ data 𝕋 α β
 ϝ _ r _ (ℙ b  ) = r b
 ϝ _ _ g (ℚ a b) = g a b
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENCE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}{{^year}}2017{{/year}}
 

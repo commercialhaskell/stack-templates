@@ -62,6 +62,9 @@ extra-deps:
 flags: {}
 extra-package-dbs: []
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2017{{/year}}
 
