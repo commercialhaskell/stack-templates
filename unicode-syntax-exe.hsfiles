@@ -32,6 +32,9 @@ main ∷ IO ()
 main = do
   putStrLn "ᚣ"
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENCE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}
 
