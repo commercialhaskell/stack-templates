@@ -28,6 +28,9 @@ new-template:
 protolude:
   description: Project using a custom Prelude based on the Protolude library
 
+protolude-hpack:
+  description: Project using a Protolude and hpack instead of a Cabal config
+
 quickcheck-test-framework:
   description: a library for random testing of program properties
 

@@ -1,0 +1,133 @@
+{-# START_FILE package.yaml #-}
+name:                {{name}}
+version:             0.1.0.0
+# synopsis:
+# description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+license:             BSD3
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+
+extra-source-files:
+  - README.md
+
+ghc-options:
+  - -Wall
+
+default-extensions:
+  - NoImplicitPrelude
+  - OverloadedStrings
+
+dependencies:
+  - base >= 4.7 && < 5
+  - protolude >= 0.1.10 && < 0.2
+
+library:
+  source-dirs: src
+
+tests:
+  spec:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N
+    dependencies:
+      - {{name}}
+
+executables:
+  {{name}}:
+    source-dirs:      app
+    main:             Main.hs
+    dependencies:
+      - {{name}}
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE test/Spec.hs #-}
+import Protolude
+
+main :: IO ()
+main = putStrLn ("Test suite not yet implemented" :: Text)
+
+{-# START_FILE src/Lib/Prelude.hs #-}
+{-
+Welcome to your custom Prelude
+Export here everything that should always be in your library scope
+For more info on what is exported by Protolude check:
+https://github.com/sdiehl/protolude/blob/master/Symbols.md
+-}
+module Lib.Prelude
+    ( module Exports
+    ) where
+
+import Protolude as Exports
+
+{-# START_FILE src/Lib.hs #-}
+{-|
+Module      : Lib
+Description : Lib's main module
+
+This is a haddock comment describing your library
+For more information on how to write Haddock comments check the user guide:
+<https://www.haskell.org/haddock/doc/html/index.html>
+-}
+module Lib
+    ( someFunc
+    ) where
+
+import Lib.Prelude
+
+-- | Prints someFunc
+--
+-- >>> someFunc 10
+-- someFunc
+someFunc :: IO ()
+someFunc = putStrLn ("someFunc" :: Text)
+
+{-# START_FILE app/Main.hs #-}
+module Main where
+
+import Protolude
+import Lib
+
+main :: IO ()
+main = someFunc
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2017{{/year}}
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+{-# START_FILE README.md #-}
+# {{name}}
+
+add description of {{name}} here
