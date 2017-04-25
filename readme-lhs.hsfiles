@@ -1,39 +1,114 @@
-{-# START_FILE readme.lhs #-}
+{-# START_FILE readme.md #-}
 {{name}}
 ===
 
 [![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
 
+See https://{{github-username}}{{^github-username}}githubuser{{/github-username}}.github.io/{{name}}/index.html for project description.
+
+~~~
+stack build --test --exec "$(stack path --local-install-root)/bin/{{name}}-example" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/example.lhs -t html -o index.html --filter pandoc-include --mathjax" --file-watch
+~~~
+
+{-# START_FILE app/example.lhs #-}
+```include
+other/header.md
+```
+
 {{name}}
+===
+
+[ghc options](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference)
 ---
 
-usage
+\begin{code}
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+\end{code}
+
+[pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html)
 ---
 
-To build & run:
+\begin{code}
+-- doctest doesn't look at the cabal file, so you need pragmas here
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
+\end{code}
 
-~~~
-stack install && readme
-~~~
+[libraries](https://www.stackage.org/)
+---
 
-To build, run & render:
+- [protolude](https://www.stackage.org/package/protolude)
+- [optparse-generic](https://www.stackage.org/package/optparse-generic)
 
-~~~
-stack build --copy-bins --exec "readme" --exec "pandoc -f markdown+lhs -i readme.lhs -t html -o index.html --filter pandoc-include --mathjax" --exec "pandoc -f markdown+lhs -i readme.lhs -t markdown -o readme.md --filter pandoc-include --mathjax" --exec "echo Yah, it succeeded!" --file-watch
-~~~
+\begin{code}
+import Protolude
+import Options.Generic
+\end{code}
 
-> import Protolude
->
-> main :: IO ()
-> main = putStrLn ("ok" :: Text)
+code
+---
+
+- [hoogle](https://www.stackage.org/package/hoogle)
+
+\begin{code}
+data Opts w = Opts
+    { number :: w ::: Maybe Integer <?> "The number you want to product to"
+    }
+    deriving (Generic)
+
+instance ParseRecord (Opts Wrapped)
+
+main :: IO ()
+main = do
+    o :: Opts Unwrapped <- unwrapRecord "an example app for readme-lhs"
+    let n = fromMaybe 10 (number o)
+    let answer = product [1..n]
+    putStrLn (show answer <> " 👍" :: Text)
+    writeFile "other/answer.md"
+        ("$\\prod_{i=1}^{" <> show n <> "} i = " <>
+         show answer <> "$")
+\end{code}
+
+output
+---
+
+```include
+other/answer.md
+```
+
+tests
+---
+
+- [doctest](https://www.stackage.org/package/doctest)
+
+\begin{code}
+-- | doctests
+-- >>> let n = 10
+-- >>> product [1..n]
+-- 3628800
+\end{code}
+
+***
+
+<div class="footer">
+Powered by [haskell](https://haskell-lang.org/), [stack](https://docs.haskellstack.org/en/stable/README/) and [pandoc](http://pandoc.org/).
+</div>
 
 {-# START_FILE {{name}}.cabal #-}
 name:
   {{name}}
 version:
-  0.1.0.0
--- synopsis:
--- description:
+  0.0.1
+synopsis:
+  See readme.md
+description:
+  See readme.md for description.
 category:
   project
 homepage:
@@ -53,12 +128,16 @@ build-type:
 cabal-version:
   >=1.14
 extra-source-files:
+  readme.md
+  index.html
   stack.yaml
+  other/lhs.css
+  other/header.md
 library
   default-language:
     Haskell2010
   ghc-options:
-  hs-source-dirs:
+  hs-source-dirs:      
 
   exposed-modules:
 
@@ -98,7 +177,7 @@ library
     TypeFamilies,
     TypeOperators
 
-executable readme
+executable {{name}}-example
   default-language:
     Haskell2010
   ghc-options:
@@ -108,13 +187,65 @@ executable readme
     -rtsopts
     -with-rtsopts=-N
   hs-source-dirs:
-    ./
+    app
   main-is:
-    readme.lhs
+    example.lhs
   build-depends:
     base >= 4.7 && < 5,
     protolude,
-    {{name}}
+    optparse-generic
+  default-extensions:
+    NoImplicitPrelude,
+    UnicodeSyntax,
+    BangPatterns,
+    BinaryLiterals,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveTraversable,
+    DisambiguateRecordFields,
+    EmptyCase,
+    FlexibleContexts,
+    FlexibleInstances,
+    FunctionalDependencies,
+    GADTSyntax,
+    InstanceSigs,
+    KindSignatures,
+    LambdaCase,
+    MonadComprehensions,
+    MultiParamTypeClasses,
+    MultiWayIf,
+    NegativeLiterals,
+    OverloadedStrings,
+    ParallelListComp,
+    PartialTypeSignatures,
+    PatternSynonyms,
+    RankNTypes,
+    RecordWildCards,
+    RecursiveDo,
+    ScopedTypeVariables,
+    TupleSections,
+    TypeFamilies,
+    TypeOperators
+
+test-suite test
+  default-language:
+    Haskell2010
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+  main-is:
+    test.hs
+  build-depends:
+    base >= 4.7 && < 5,
+    tasty,
+    HUnit,
+    tasty-hunit,
+    QuickCheck,
+    tasty-quickcheck,
+    doctest,
+    protolude
   default-extensions:
     NoImplicitPrelude,
     UnicodeSyntax,
@@ -200,11 +331,15 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 {-# START_FILE .travis.yml #-}
-## modified version of the complex Travis configuration.
-# For more information and other options, see:
+# This is the simple Travis configuration, which is intended for use
+# on applications which do not require cross-platform and
+# multiple-GHC-version support. For more information and other
+# options, see:
 #
 # https://docs.haskellstack.org/en/stable/travis_ci/
 #
+# Copy these contents into the root directory of your Github project in a file
+# named .travis.yml
 
 # Use new container infrastructure to enable caching
 sudo: false
@@ -215,137 +350,173 @@ language: generic
 # Caching so the next build will be fast too.
 cache:
   directories:
-  - $HOME/.ghc
-  - $HOME/.cabal
   - $HOME/.stack
 
-# The different configurations we want to test. We have BUILD=cabal which uses
-# cabal-install, and BUILD=stack which uses Stack. More documentation on each
-# of those below.
-#
-# We set the compiler values here to tell Travis to use a different
-# cache file per set of arguments.
-#
-# If you need to have different apt packages for each combination in the
-# matrix, you can use a line such as:
-#     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
-matrix:
-  include:
-  # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
-  # https://github.com/hvr/multi-ghc-travis
-  - env: BUILD=cabal GHCVER=7.10.3 CABALVER=1.22 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 7.10.3"
-    addons: {apt: {packages: [cabal-install-1.22,ghc-7.10.3,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-  - env: BUILD=cabal GHCVER=8.0.1 CABALVER=1.24 HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC 8.0.1"
-    addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.1,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-
-  # Build with the newest GHC and cabal-install. This is an accepted failure,
-  # see below.
-  - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
-    compiler: ": #GHC HEAD"
-    addons: {apt: {packages: [cabal-install-head,ghc-head,happy-1.19.5,alex-3.1.7], sources: [hvr-ghc]}}
-
-  # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
-  # variable, such as using --stack-yaml to point to a different file.
-  - env: BUILD=stack ARGS="--resolver lts-6"
-    compiler: ": #stack 7.10.3"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack 8.0.1"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  # Nightly builds are allowed to fail
-  - env: BUILD=stack ARGS="--resolver nightly"
-    compiler: ": #stack nightly"
-    addons: {apt: {packages: [libgmp-dev]}}
-
-  # Build on macOS in addition to Linux
-  - env: BUILD=stack ARGS="--resolver lts-7"
-    compiler: ": #stack 8.0.1 osx"
-    os: osx
-
-  allow_failures:
-  - env: BUILD=cabal GHCVER=head  CABALVER=head HAPPYVER=1.19.5 ALEXVER=3.1.7
-  - env: BUILD=stack ARGS="--resolver nightly"
-
+# Ensure necessary system libraries are present
+addons:
+  apt:
+    packages:
+      - libgmp-dev
 
 before_install:
-# Using compiler above sets CC to an invalid value, so unset it
-- unset CC
-
-# We want to always allow newer versions of packages when building on GHC HEAD
-- CABALARGS=""
-- if [ "x$GHCVER" = "xhead" ]; then CABALARGS=--allow-newer; fi
-
 # Download and unpack the stack executable
-- export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
 - mkdir -p ~/.local/bin
-- |
-  if [ `uname` = "Darwin" ]
-  then
-    travis_retry curl --insecure -L https://www.stackage.org/stack/osx-x86_64 | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-  else
-    travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  fi
-
-  # Use the more reliable S3 mirror of Hackage
-  mkdir -p $HOME/.cabal
-  echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
-  echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-
-  if [ "$CABALVER" != "1.16" ]
-  then
-    echo 'jobs: $ncpus' >> $HOME/.cabal/config
-  fi
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
 install:
-- echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-- if [ -f configure.ac ]; then autoreconf -i; fi
-- |
-  set -ex
-  case "$BUILD" in
-    stack)
-      stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
-      ;;
-    cabal)
-      cabal --version
-      travis_retry cabal update
-
-      # Get the list of packages from the stack.yaml file
-      PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
-
-      cabal install --only-dependencies --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
-      ;;
-  esac
-  set +ex
+# Build dependencies
+- stack --no-terminal --install-ghc test --only-dependencies
 
 script:
-- |
-  set -ex
-  case "$BUILD" in
-    stack)
-      stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
-      ;;
-    cabal)
-      cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
+# Build the package, its tests, and its docs and run the tests
+- stack --no-terminal test --haddock --no-haddock-deps
 
-      ORIGDIR=$(pwd)
-      for dir in $PACKAGES
-      do
-        cd $dir
-        cabal check || [ "$CABALVER" == "1.16" ]
-        cabal sdist
-        PKGVER=$(cabal info . | awk '{print $2;exit}')
-        SRC_TGZ=$PKGVER.tar.gz
-        cd dist
-        tar zxfv "$SRC_TGZ"
-        cd "$PKGVER"
-        cabal configure --enable-tests
-        cabal build
-        cd $ORIGDIR
-      done
-      ;;
-  esac
-  set +ex
+{-# START_FILE other/lhs.css #-}
+h1 {
+  font-family: "Rockwell", "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 32px;
+  margin: 16px 0 32px 0;
+  line-height: 1.1;
+}
+
+h2 {
+  font-family: "Rockwell", "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 24px;
+  margin: 40px 0 20px 0;
+  line-height: 1.1;
+}
+
+body {
+    background-color: #f6f6f6;
+    color: #3d3d3d;
+    font-family: "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    min-width: 200px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 45px;
+}
+
+body a {
+    background-color: transparent;
+    border-bottom: 2px solid #e1e1e1;
+    color: #3d3d3d;
+    text-decoration: none;
+}
+
+body a:hover {
+    color: #2640cb;
+    border-color: #2640cb;
+    text-decoration: none;
+}
+
+body blockquote {
+  border-left: 0.25rem solid #ebebeb;
+  border-left-style: solid;
+  font-style: italic;
+  margin: 0.5rem 0 1rem 0;
+  padding: 0 0 0 1rem;
+  padding: 0 15px;
+  color: #777;
+}
+
+body code {
+    color: #49341c;
+    background-color: #f5f0f0;
+}
+
+body .footer {
+    color: #888888;
+    font-size: 10px;
+    text-align: right;
+}
+
+body hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+body img {
+    max-width: 100%;
+    border: 0;
+}
+
+body pre {
+    color: #ab1f27;
+    background-color: #f5f0f0;
+    padding: 12px;
+    overflow: auto;
+}
+
+body ul {
+  margin: 1.25rem 0;
+  padding-left: 0;
+}
+
+body ul li {
+  counter-increment: this;
+  line-height: 1.313em;
+  list-style: none;
+  position: relative;
+}
+
+body ul li:after {
+  color: #757575;
+  content: "-";
+  font-size: 100%;
+  left: -1em;
+  position: absolute;
+  top: 0;
+}
+
+.sourceCode {
+    background-color: #f0f0f0;
+    color: #3d323d;
+    font-family: "lucida console", "9x15", "DejaVu Sans Mono", "Monaco";
+    font-size: 1em;
+}
+.sourceCode .ot { color: #3d323d; }
+.sourceCode .kw { color: #3d323d; }
+.sourceCode .dt { color: #ab1f27; }
+.sourceCode .dv { color: #2536d6; }
+.sourceCode .st { color: #2536d6; }
+.sourceCode .co {
+  color: #808080;
+  font-style: italic;
+}
+.sourceCode .fu { color: #e347e4; }
+
+{-# START_FILE other/header.md #-}
+<meta charset="utf-8">
+<link rel="stylesheet" href="other/lhs.css">
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+{-# START_FILE test/test.hs #-}
+{-# OPTIONS_GHC -Wall #-}
+
+module Main where
+
+import Protolude
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.DocTest
+
+main :: IO ()
+main = do
+    doctest ["app/example.lhs"]
+    defaultMain tests
+
+tests :: TestTree
+tests =
+    testGroup ""
+    [
+    ]
+
