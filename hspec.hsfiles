@@ -69,7 +69,7 @@ spec = do
     it "removes leading and trailing whitespace" $ do
       strip "\t  foo bar\n" `shouldBe` "foo bar"
     it "is idempotent" $ property $
-      \str -> strip str == strip (strip str)
+      \str -> strip str === strip (strip str)
 
 {-# START_FILE src/Data/String/Strip.hs #-}
 module Data.String.Strip (strip)  where
