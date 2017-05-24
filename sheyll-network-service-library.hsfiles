@@ -1,0 +1,464 @@
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
+version:             0.1.0.0
+synopsis:            Initial project template from stack
+description:         Please see README.markdown
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+license:             BSD3
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+build-type:          Simple
+-- extra-source-files:
+extra-source-files:   README.markdown
+                    , CHANGELOG.markdown
+                    , stack.yaml
+cabal-version:       >=1.24
+
+flag printfdebugging
+  description: Build with printf-debugging code snippets enabled
+  default:     False
+
+flag cibuild
+  description: Disable memory- or CPU-intensive tests and benchmarks e.g. for CI builds on travis
+  default:     False
+
+library
+  hs-source-dirs:      src/library
+  exposed-modules:     Lib
+  build-depends:       array
+                     , async >= 2.1 && < 3
+                     , attoparsec >= 0.13 && < 1
+                     , base >= 4.9 && < 5
+                     , binary
+                     , bytestring
+                     , containers
+                     , data-default >= 0.7.1.1 && < 1
+                     , deepseq
+                     , directory
+                     , exceptions >= 0.8 && < 1
+                     , filepath
+                     , interpolatedstring-perl6 >= 1 && < 2
+                     , lens >= 4 && < 5
+                     , mtl >= 2.2 && < 3
+                     , network >= 2.6 && < 3
+                     , parsec >= 3.1 && < 4
+                     , pretty
+                     , pretty-types >= 0.2.3 && < 1
+                     , process
+                     , primitive >= 0.6 && < 1
+                     , QuickCheck >= 2.8 && < 3
+                     , random
+                     , resourcet >= 1.1 && < 2
+                     , singletons >= 2.2 && < 3
+                     , streaming-commons >= 0.1 && < 0.2
+                     , spool == 0.1
+                     , stm >= 2.4 && < 3
+                     , tagged >= 0.8 && < 1
+                     , time
+                     , text >= 1.2.2.1 && < 2
+                     , template-haskell
+                     , transformers
+                     , vector >= 0.11 && < 0.12
+  default-language:    Haskell2010
+  default-extensions:  ApplicativeDo
+                     , Arrows
+                     , BangPatterns
+                     , ConstraintKinds
+                     , CPP
+                     , DataKinds
+                     , DefaultSignatures
+                     , DeriveDataTypeable
+                     , DeriveFoldable
+                     , DeriveFunctor
+                     , DeriveGeneric
+                     , DeriveLift
+                     , DeriveTraversable
+                     , DuplicateRecordFields
+                     , EmptyDataDecls
+                     , EmptyCase
+                     , FlexibleInstances
+                     , FlexibleContexts
+                     , FunctionalDependencies
+                     , GADTs
+                     , GeneralizedNewtypeDeriving
+                     , KindSignatures
+                     , LambdaCase
+                     , MultiParamTypeClasses
+                     , MultiWayIf
+                     , NamedFieldPuns
+                     , QuasiQuotes
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , StandaloneDeriving
+                     , TemplateHaskell
+                     , TupleSections
+                     , TypeApplications
+                     , TypeFamilies
+                     , TypeInType
+                     , TypeOperators
+                     , TypeSynonymInstances
+                     , UnicodeSyntax
+  ghc-options:       -O2
+                     -Wall
+                     -fno-warn-unused-do-bind
+                     -funbox-strict-fields
+                     -fprint-explicit-kinds
+  if flag(printfdebugging)
+    cpp-options:      -DPRINTFDEBUGGING
+  else
+    cpp-options:      -DNPRINTFDEBUGGING
+  if flag(cibuild)
+    cpp-options:      -DCIBUILD
+  else
+    cpp-options:      -DNCIBUILD
+
+test-suite tests
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      src/tests
+  main-is:             Spec.hs
+  default-language:    Haskell2010
+  build-depends:       {{name}}
+                     , array
+                     , async
+                     , attoparsec
+                     , base
+                     , binary
+                     , bytestring
+                     , containers
+                     , data-default
+                     , deepseq
+                     , directory
+                     , exceptions
+                     , filepath
+                     , interpolatedstring-perl6
+                     , lens
+                     , mtl
+                     , network
+                     , parsec
+                     , pretty
+                     , pretty-types
+                     , process
+                     , primitive
+                     , QuickCheck
+                     , random
+                     , resourcet
+                     , singletons
+                     , streaming-commons
+                     , spool
+                     , stm
+                     , tagged
+                     , time
+                     , text
+                     , template-haskell
+                     , transformers
+                     , type-spec
+                     , vector
+                     , hspec
+  default-language:    Haskell2010
+  default-extensions:  ApplicativeDo
+                     , Arrows
+                     , BangPatterns
+                     , ConstraintKinds
+                     , CPP
+                     , DataKinds
+                     , DefaultSignatures
+                     , DeriveDataTypeable
+                     , DeriveFoldable
+                     , DeriveFunctor
+                     , DeriveGeneric
+                     , DeriveLift
+                     , DeriveTraversable
+                     , DuplicateRecordFields
+                     , EmptyDataDecls
+                     , EmptyCase
+                     , FlexibleInstances
+                     , FlexibleContexts
+                     , FunctionalDependencies
+                     , GADTs
+                     , GeneralizedNewtypeDeriving
+                     , KindSignatures
+                     , LambdaCase
+                     , MultiParamTypeClasses
+                     , MultiWayIf
+                     , NamedFieldPuns
+                     , QuasiQuotes
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , StandaloneDeriving
+                     , TemplateHaskell
+                     , TupleSections
+                     , TypeApplications
+                     , TypeFamilies
+                     , TypeInType
+                     , TypeOperators
+                     , TypeSynonymInstances
+                     , UnicodeSyntax
+  ghc-options:       -threaded
+                     -rtsopts -with-rtsopts=-N
+                     -j +RTS -A256m -n2m -RTS
+                     -Wall
+                     -O0
+                     -fno-warn-unused-binds
+                     -fno-warn-orphans
+                     -fno-warn-unused-do-bind
+                     -fno-warn-missing-signatures
+                     -fprint-explicit-kinds
+  if flag(printfdebugging)
+    cpp-options:      -DPRINTFDEBUGGING
+  else
+    cpp-options:      -DNPRINTFDEBUGGING
+  if flag(cibuild)
+    cpp-options:      -DCIBUILD
+  else
+    cpp-options:      -DNCIBUILD
+
+benchmark benchmarks
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      src/benchmarks
+  main-is:             Main.hs
+  build-depends:       {{name}}
+                     , array
+                     , async
+                     , attoparsec
+                     , base
+                     , binary
+                     , bytestring
+                     , containers
+                     , criterion >= 1.1 && < 2
+                     , data-default
+                     , deepseq
+                     , directory
+                     , exceptions
+                     , filepath
+                     , interpolatedstring-perl6
+                     , lens
+                     , mtl
+                     , network
+                     , parsec
+                     , pretty
+                     , pretty-types
+                     , process
+                     , primitive
+                     , random
+                     , resourcet
+                     , singletons
+                     , streaming-commons
+                     , spool
+                     , stm
+                     , tagged
+                     , time
+                     , text
+                     , template-haskell
+                     , transformers
+                     , type-spec
+                     , vector
+  ghc-options:       -threaded
+                     -rtsopts -with-rtsopts=-N
+                     -j +RTS -A256m -n2m -RTS
+                     -O2
+                     -Wall
+                     -fno-warn-unused-binds
+                     -fno-warn-orphans
+                     -fno-warn-unused-do-bind
+                     -fno-warn-missing-signatures
+                     -fprint-explicit-kinds
+  default-language:    Haskell2010
+  default-extensions:  ApplicativeDo
+                     , Arrows
+                     , BangPatterns
+                     , ConstraintKinds
+                     , CPP
+                     , DataKinds
+                     , DefaultSignatures
+                     , DeriveDataTypeable
+                     , DeriveFoldable
+                     , DeriveFunctor
+                     , DeriveGeneric
+                     , DeriveLift
+                     , DeriveTraversable
+                     , DuplicateRecordFields
+                     , EmptyDataDecls
+                     , EmptyCase
+                     , FlexibleInstances
+                     , FlexibleContexts
+                     , FunctionalDependencies
+                     , GADTs
+                     , GeneralizedNewtypeDeriving
+                     , KindSignatures
+                     , LambdaCase
+                     , MultiParamTypeClasses
+                     , MultiWayIf
+                     , NamedFieldPuns
+                     , QuasiQuotes
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , StandaloneDeriving
+                     , TemplateHaskell
+                     , TupleSections
+                     , TypeApplications
+                     , TypeFamilies
+                     , TypeInType
+                     , TypeOperators
+                     , TypeSynonymInstances
+                     , UnicodeSyntax
+  if flag(printfdebugging)
+    cpp-options:      -DPRINTFDEBUGGING
+  else
+    cpp-options:      -DNPRINTFDEBUGGING
+  if flag(cibuild)
+    cpp-options:      -DCIBUILD
+  else
+    cpp-options:      -DNCIBUILD
+
+
+source-repository head
+  type:     git
+  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE LICENSE #-}
+Copyright {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .travis.yml #-}
+language: c
+
+sudo: false
+cache:
+  directories:
+  - $HOME/.stack/
+
+matrix:
+  include:
+    - env: CABALVER=1.24 GHCVER=8.0.1
+      addons: {apt: {packages: [cabal-install-1.24,ghc-8.0.1],sources: [hvr-ghc]}}
+
+before_install:
+  - mkdir -p ~/.local/bin
+  - export PATH=~/.local/bin:$PATH
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar -xzO --wildcards '*/stack' > ~/.local/bin/stack
+  - chmod a+x ~/.local/bin/stack
+
+install:
+  - stack -j 2 setup --no-terminal
+
+script:
+  - stack test --flag {{name}}:cibuild --fast --no-terminal
+  - stack bench --flag {{name}}:cibuild --fast --no-terminal
+
+{-# START_FILE .gitignore #-}
+*.hi
+*.o
+*.swp
+*.tag
+*~
+*_flymake.hs
+.hsenv
+.stack-work/
+TAGS
+/.idea/
+/.dir-locals.el
+*.refactored.hs
+/*.html
+
+{-# START_FILE README.markdown #-}
+# {{name}}
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.svg?branch=master)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+[![Hackage](https://img.shields.io/hackage/v/{{name}}.svg)](http://hackage.haskell.org/package/{{name}})
+
+## Contact Information
+
+Contributions and bug reports are welcome!
+
+{-# START_FILE CHANGELOG.markdown #-}
+# 0.1.0.0 Initial Version
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE src/library/Lib.hs #-}
+module Lib where
+
+fib :: Integer -> Integer
+fib n
+  | n > 1     = fib (n - 1) + fib (n - 2)
+  | n == 1    = 1
+  | n == 0    = 0
+  | otherwise = error "negative!"
+
+{-# START_FILE src/tests/Spec.hs #-}
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+
+{-# START_FILE src/tests/LibSpec.hs #-}
+{-# LANGUAGE CPP #-}
+module LibSpec (spec) where
+
+import           Test.Hspec
+#ifdef NCIBUILD
+import           Test.QuickCheck
+#endif
+import           Lib
+
+spec :: Spec
+spec =
+  describe "fib" $ do
+    it "returns 0 for 0" $ fib 0 `shouldBe` 0
+    it "returns 1 for 1" $ fib 1 `shouldBe` 1
+#ifdef NCIBUILD
+    it "returns 3 for 4" $ fib 4 `shouldBe` 3
+    it "is ever increasing" $ property $
+         \ (Positive (Small x)) (Positive (Small y)) ->
+           not (x < 11 && x > y) || (fib x >= fib y)
+
+#endif
+
+{-# START_FILE src/benchmarks/Main.hs #-}
+{-# LANGUAGE CPP #-}
+module Main where
+
+import           Lib
+import           Criterion.Main
+
+main = defaultMain [
+  bgroup "fib" [ bench "1"  $ whnf fib 1
+               , bench "5"  $ whnf fib 5
+               , bench "9"  $ whnf fib 9
+               , bench "11" $ whnf fib 11
+#ifdef NCIBUILD
+               , bench "13" $ whnf fib 13
+#endif
+               ]
+  ]
