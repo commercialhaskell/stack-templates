@@ -1,8 +1,8 @@
 {-# START_FILE package.yaml #-}
 name:                {{name}}
 version:             0.1.0.0
--- synopsis:
--- description:
+#synopsis:
+#description:
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
