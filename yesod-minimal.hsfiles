@@ -23,8 +23,48 @@ cabal.sandbox.config
 .DS_Store
 *.swp
 *.keter
+*~
+\#*
+{{name}}.cabal
 
-{-# START_FILE Add.hs #-}
+{-# START_FILE app/Main.hs #-}
+import Application () -- for YesodDispatch instance
+import Foundation
+import Yesod.Core
+
+main :: IO ()
+main = warp 3000 App
+
+{-# START_FILE package.yaml #-}
+name:    {{name}}
+version: "0.0.0"
+
+dependencies:
+- base
+- yesod-core
+
+# The library contains all of our application code. The executable
+# defined below is just a thin wrapper.
+library:
+  source-dirs: src
+
+# Runnable executable for our application
+executables:
+  {{name}}:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+
+{-# START_FILE routes #-}
+/              HomeR GET
+/add/#Int/#Int AddR  GET
+
+{-# START_FILE src/Add.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 module Add where
@@ -41,7 +81,7 @@ getAddR x y = selectRep $ do
   where
     z = x + y
 
-{-# START_FILE Application.hs #-}
+{-# START_FILE src/Application.hs #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE ViewPatterns         #-}
@@ -57,7 +97,7 @@ import Home
 
 mkYesodDispatch "App" resourcesApp
 
-{-# START_FILE Foundation.hs #-}
+{-# START_FILE src/Foundation.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
@@ -72,7 +112,7 @@ mkYesodData "App" $(parseRoutesFile "routes")
 
 instance Yesod App
 
-{-# START_FILE Home.hs #-}
+{-# START_FILE src/Home.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 module Home where
@@ -89,40 +129,6 @@ getHomeR = defaultLayout $ do
         <p>
             <a href=@{AddR 5 7}?_accept=application/json>JSON addition
     |]
-
-{-# START_FILE Main.hs #-}
-import Application () -- for YesodDispatch instance
-import Foundation
-import Yesod.Core
-
-main :: IO ()
-main = warp 3000 App
-
-{-# START_FILE {{name}}.cabal #-}
-name:               {{name}}
-version:            0.0.0
-cabal-version:      >= 1.8
-build-type:         Simple
-extra-source-files: routes
-
-executable          {{name}}
-  main-is:          Main.hs
-  other-modules:    Application
-                    Foundation
-
-                    Add
-                    Home
-
-  ghc-options:      -Wall -fwarn-tabs -O2
-
-  build-depends:  base
-                , yesod-core
-
-  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
-
-{-# START_FILE routes #-}
-/              HomeR GET
-/add/#Int/#Int AddR  GET
 
 {-# START_FILE templates/default-message-widget.hamlet #-}
 <div .container>

@@ -24,984 +24,9 @@ cabal.sandbox.config
 .DS_Store
 *.swp
 *.keter
-
-{-# START_FILE Application.hs #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-module Application
-    ( getApplicationDev
-    , appMain
-    , develMain
-    , makeFoundation
-    , makeLogWare
-    -- * for DevelMain
-    , getApplicationRepl
-    , shutdownApp
-    -- * for GHCI
-    , handler
-    , db
-    ) where
-
-import Control.Monad.Logger                 (liftLoc, runLoggingT)
-import Database.Persist.Postgresql          (createPostgresqlPool, pgConnStr,
-                                             pgPoolSize, runSqlPool)
-import Import
-import Language.Haskell.TH.Syntax           (qLocation)
-import Network.Wai (Middleware)
-import Network.Wai.Handler.Warp             (Settings, defaultSettings,
-                                             defaultShouldDisplayException,
-                                             runSettings, setHost,
-                                             setOnException, setPort, getPort)
-import Network.Wai.Middleware.RequestLogger (Destination (Logger),
-                                             IPAddrSource (..),
-                                             OutputFormat (..), destination,
-                                             mkRequestLogger, outputFormat)
-import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
-                                             toLogStr)
-import Yesod.Fay                            (getFaySite)
-
--- Import all relevant handler modules here.
--- Don't forget to add new modules to your cabal file!
-import Handler.Common
-import Handler.Fay
-import Handler.Home
-import Handler.Comment
-import Handler.Profile
-
--- This line actually creates our YesodDispatch instance. It is the second half
--- of the call to mkYesodData which occurs in Foundation.hs. Please see the
--- comments there for more details.
-mkYesodDispatch "App" resourcesApp
-
--- | This function allocates resources (such as a database connection pool),
--- performs initialization and returns a foundation datatype value. This is also
--- the place to put your migrate statements to have automatic database
--- migrations handled by Yesod.
-makeFoundation :: AppSettings -> IO App
-makeFoundation appSettings = do
-    -- Some basic initializations: HTTP connection manager, logger, and static
-    -- subsite.
-    appHttpManager <- newManager
-    appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
-    appStatic <-
-        (if appMutableStatic appSettings then staticDevel else static)
-        (appStaticDir appSettings)
-    let appFayCommandHandler = onCommand
-
-    -- We need a log function to create a connection pool. We need a connection
-    -- pool to create our foundation. And we need our foundation to get a
-    -- logging function. To get out of this loop, we initially create a
-    -- temporary foundation without a real connection pool, get a log function
-    -- from there, and then create the real foundation.
-    let mkFoundation appConnPool = App {..}
-        -- The App {..} syntax is an example of record wild cards. For more
-        -- information, see:
-        -- https://ocharles.org.uk/blog/posts/2014-12-04-record-wildcards.html
-        tempFoundation = mkFoundation $ error "connPool forced in tempFoundation"
-        logFunc = messageLoggerSource tempFoundation appLogger
-
-    -- Create the database connection pool
-    pool <- flip runLoggingT logFunc $ createPostgresqlPool
-        (pgConnStr  $ appDatabaseConf appSettings)
-        (pgPoolSize $ appDatabaseConf appSettings)
-
-    -- Perform database migration using our application's logging settings.
-    runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
-
-    -- Return the foundation
-    return $ mkFoundation pool
-
--- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
--- applying some additional middlewares.
-makeApplication :: App -> IO Application
-makeApplication foundation = do
-    logWare <- makeLogWare foundation
-    -- Create the WAI application and apply middlewares
-    appPlain <- toWaiAppPlain foundation
-    return $ logWare $ defaultMiddlewaresNoLogging appPlain
-
-makeLogWare :: App -> IO Middleware
-makeLogWare foundation =
-    mkRequestLogger def
-        { outputFormat =
-            if appDetailedRequestLogging $ appSettings foundation
-                then Detailed True
-                else Apache
-                        (if appIpFromHeader $ appSettings foundation
-                            then FromFallback
-                            else FromSocket)
-        , destination = Logger $ loggerSet $ appLogger foundation
-        }
-
-
--- | Warp settings for the given foundation value.
-warpSettings :: App -> Settings
-warpSettings foundation =
-      setPort (appPort $ appSettings foundation)
-    $ setHost (appHost $ appSettings foundation)
-    $ setOnException (\_req e ->
-        when (defaultShouldDisplayException e) $ messageLoggerSource
-            foundation
-            (appLogger foundation)
-            $(qLocation >>= liftLoc)
-            "yesod"
-            LevelError
-            (toLogStr $ "Exception from Warp: " ++ show e))
-      defaultSettings
-
--- | For yesod devel, return the Warp settings and WAI Application.
-getApplicationDev :: IO (Settings, Application)
-getApplicationDev = do
-    settings <- getAppSettings
-    foundation <- makeFoundation settings
-    wsettings <- getDevSettings $ warpSettings foundation
-    app <- makeApplication foundation
-    return (wsettings, app)
-
-getAppSettings :: IO AppSettings
-getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
-
--- | main function for use by yesod devel
-develMain :: IO ()
-develMain = develMainHelper getApplicationDev
-
--- | The @main@ function for an executable running this site.
-appMain :: IO ()
-appMain = do
-    -- Get the settings from all relevant sources
-    settings <- loadYamlSettingsArgs
-        -- fall back to compile-time values, set to [] to require values at runtime
-        [configSettingsYmlValue]
-
-        -- allow environment variables to override
-        useEnv
-
-    -- Generate the foundation from the settings
-    foundation <- makeFoundation settings
-
-    -- Generate a WAI Application from the foundation
-    app <- makeApplication foundation
-
-    -- Run the application with Warp
-    runSettings (warpSettings foundation) app
-
-
---------------------------------------------------------------
--- Functions for DevelMain.hs (a way to run the app from GHCi)
---------------------------------------------------------------
-getApplicationRepl :: IO (Int, App, Application)
-getApplicationRepl = do
-    settings <- getAppSettings
-    foundation <- makeFoundation settings
-    wsettings <- getDevSettings $ warpSettings foundation
-    app1 <- makeApplication foundation
-    return (getPort wsettings, foundation, app1)
-
-shutdownApp :: App -> IO ()
-shutdownApp _ = return ()
-
-
----------------------------------------------
--- Functions for use in development with GHCi
----------------------------------------------
-
--- | Run a handler
-handler :: Handler a -> IO a
-handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
-
--- | Run DB queries
-db :: ReaderT SqlBackend (HandlerT App IO) a -> IO a
-db = handler . runDB
-
-{-# START_FILE Foundation.hs #-}
-module Foundation where
-
-import Database.Persist.Sql        (ConnectionPool, runSqlPool)
-import Import.NoFoundation
-import Text.Hamlet                 (hamletFile)
-
--- Used only when in "auth-dummy-login" setting is enabled.
-import Yesod.Auth.Dummy
-
-import Yesod.Auth.OpenId           (authOpenId, IdentifierType (Claimed))
-import qualified Yesod.Core.Unsafe as Unsafe
-import Yesod.Core.Types            (Logger)
-import Yesod.Default.Util          (addStaticContentExternal)
-import Yesod.Fay
-import qualified Data.CaseInsensitive as CI
-import qualified Data.Text.Encoding as TE
-
--- | The foundation datatype for your application. This can be a good place to
--- keep settings and values requiring initialization before your application
--- starts running, such as database connections. Every handler will have
--- access to the data present here.
-data App = App
-    { appSettings          :: AppSettings
-    , appStatic            :: Static -- ^ Settings for static file serving.
-    , appConnPool          :: ConnectionPool -- ^ Database connection pool.
-    , appHttpManager       :: Manager
-    , appLogger            :: Logger
-    , appFayCommandHandler :: CommandHandler App
-    }
-
-data MenuItem = MenuItem
-    { menuItemLabel :: Text
-    , menuItemRoute :: Route App
-    , menuItemAccessCallback :: Bool
-    }
-
-data MenuTypes
-    = NavbarLeft MenuItem
-    | NavbarRight MenuItem
-
--- This is where we define all of the routes in our application. For a full
--- explanation of the syntax, please see:
--- http://www.yesodweb.com/book/routing-and-handlers
---
--- Note that this is really half the story; in Application.hs, mkYesodDispatch
--- generates the rest of the code. Please see the following documentation
--- for an explanation for this split:
--- http://www.yesodweb.com/book/scaffolding-and-the-site-template#scaffolding-and-the-site-template_foundation_and_application_modules
---
--- This function also generates the following type synonyms:
--- type Handler = HandlerT App IO
--- type Widget = WidgetT App IO ()
-mkYesodData "App" $(parseRoutesFile "config/routes")
-
--- | A convenient synonym for creating forms.
-type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
-
--- Please see the documentation for the Yesod typeclass. There are a number
--- of settings which can be configured by overriding methods here.
-instance Yesod App where
-    -- Controls the base of generated URLs. For more information on modifying,
-    -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
-    approot = ApprootRequest $ \app req ->
-        case appRoot $ appSettings app of
-            Nothing -> getApprootText guessApproot app req
-            Just root -> root
-
-    -- Store session data on the client in encrypted cookies,
-    -- default session idle timeout is 120 minutes
-    makeSessionBackend _ = Just <$> defaultClientSessionBackend
-        120    -- timeout in minutes
-        "config/client_session_key.aes"
-
-    -- Yesod Middleware allows you to run code before and after each handler function.
-    -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
-    -- Some users may also want to add the defaultCsrfMiddleware, which:
-    --   a) Sets a cookie with a CSRF token in it.
-    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
-    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
-    -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
-    yesodMiddleware = defaultYesodMiddleware
-
-    defaultLayout widget = do
-        master <- getYesod
-        mmsg <- getMessage
-
-        muser <- maybeAuthPair
-        mcurrentRoute <- getCurrentRoute
-
-        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
-        (title, parents) <- breadcrumbs
-
-        -- Define the menu items of the header.
-        let menuItems =
-                [ NavbarLeft $ MenuItem
-                    { menuItemLabel = "Home"
-                    , menuItemRoute = HomeR
-                    , menuItemAccessCallback = True
-                    }
-                , NavbarLeft $ MenuItem
-                    { menuItemLabel = "Profile"
-                    , menuItemRoute = ProfileR
-                    , menuItemAccessCallback = isJust muser
-                    }
-                , NavbarRight $ MenuItem
-                    { menuItemLabel = "Login"
-                    , menuItemRoute = AuthR LoginR
-                    , menuItemAccessCallback = isNothing muser
-                    }
-                , NavbarRight $ MenuItem
-                    { menuItemLabel = "Logout"
-                    , menuItemRoute = AuthR LogoutR
-                    , menuItemAccessCallback = isJust muser
-                    }
-                ]
-
-        let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
-        let navbarRightMenuItems = [x | NavbarRight x <- menuItems]
-
-        let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
-        let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
-
-        -- We break up the default layout into two components:
-        -- default-layout is the contents of the body tag, and
-        -- default-layout-wrapper is the entire page. Since the final
-        -- value passed to hamletToRepHtml cannot be a widget, this allows
-        -- you to use normal widget features in default-layout.
-
-        pc <- widgetToPageContent $ do
-            addStylesheet $ StaticR css_bootstrap_css
-            $(widgetFile "default-layout")
-        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
-
-    -- The page to be redirected to when authentication is required.
-    authRoute _ = Just $ AuthR LoginR
-
-    -- Routes not requiring authentication.
-    isAuthorized (AuthR _) _ = return Authorized
-    isAuthorized CommentR _ = return Authorized
-    isAuthorized HomeR _ = return Authorized
-    isAuthorized FaviconR _ = return Authorized
-    isAuthorized RobotsR _ = return Authorized
-    isAuthorized (StaticR _) _ = return Authorized
-    isAuthorized (FaySiteR _) _ = return Authorized
-
-    isAuthorized ProfileR _ = isAuthenticated
-
-    -- This function creates static content files in the static folder
-    -- and names them based on a hash of their content. This allows
-    -- expiration dates to be set far in the future without worry of
-    -- users receiving stale content.
-    addStaticContent ext mime content = do
-        master <- getYesod
-        let staticDir = appStaticDir $ appSettings master
-        addStaticContentExternal
-            Right
-            genFileName
-            staticDir
-            (StaticR . flip StaticRoute [])
-            ext
-            mime
-            content
-      where
-        -- Generate a unique filename based on the content itself
-        genFileName lbs = "autogen-" ++ base64md5 lbs
-
-    -- What messages should be logged. The following includes all messages when
-    -- in development, and warnings and errors in production.
-    shouldLog app _source level =
-        appShouldLogAll (appSettings app)
-            || level == LevelWarn
-            || level == LevelError
-
-    makeLogger = return . appLogger
-
-    -- Provide proper Bootstrap styling for default displays, like
-    -- error pages
-    defaultMessageWidget title body = $(widgetFile "default-message-widget")
-
-instance YesodJquery App
-instance YesodFay App where
-
-    fayRoute = FaySiteR
-
-    yesodFayCommand render command = do
-        master <- getYesod
-        appFayCommandHandler master render command
-
--- Define breadcrumbs.
-instance YesodBreadcrumbs App where
-  breadcrumb HomeR = return ("Home", Nothing)
-  breadcrumb (AuthR _) = return ("Login", Just HomeR)
-  breadcrumb ProfileR = return ("Profile", Just HomeR)
-  breadcrumb  _ = return ("home", Nothing)
-
--- How to run database actions.
-instance YesodPersist App where
-    type YesodPersistBackend App = SqlBackend
-    runDB action = do
-        master <- getYesod
-        runSqlPool action $ appConnPool master
-instance YesodPersistRunner App where
-    getDBRunner = defaultGetDBRunner appConnPool
-
-instance YesodAuth App where
-    type AuthId App = UserId
-
-    -- Where to send a user after successful login
-    loginDest _ = HomeR
-    -- Where to send a user after logout
-    logoutDest _ = HomeR
-    -- Override the above two destinations when a Referer: header is present
-    redirectToReferer _ = True
-
-    authenticate creds = runDB $ do
-        x <- getBy $ UniqueUser $ credsIdent creds
-        case x of
-            Just (Entity uid _) -> return $ Authenticated uid
-            Nothing -> Authenticated <$> insert User
-                { userIdent = credsIdent creds
-                , userPassword = Nothing
-                }
-
-    -- You can add other plugins like Google Email, email or OAuth here
-    authPlugins app = [authOpenId Claimed []] ++ extraAuthPlugins
-        -- Enable authDummy login if enabled.
-        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
-
-    authHttpManager = getHttpManager
-
--- | Access function to determine if a user is logged in.
-isAuthenticated :: Handler AuthResult
-isAuthenticated = do
-    muid <- maybeAuthId
-    return $ case muid of
-        Nothing -> Unauthorized "You must login to access this page"
-        Just _ -> Authorized
-
-instance YesodAuthPersist App
-
--- This instance is required to use forms. You can modify renderMessage to
--- achieve customized and internationalized form validation messages.
-instance RenderMessage App FormMessage where
-    renderMessage _ _ = defaultFormMessage
-
--- Useful when writing code that is re-usable outside of the Handler context.
--- An example is background jobs that send email.
--- This can also be useful for writing code that works across multiple Yesod applications.
-instance HasHttpManager App where
-    getHttpManager = appHttpManager
-
-unsafeHandler :: App -> Handler a -> IO a
-unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
-
--- Note: Some functionality previously present in the scaffolding has been
--- moved to documentation in the Wiki. Following are some hopefully helpful
--- links:
---
--- https://github.com/yesodweb/yesod/wiki/Sending-email
--- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
--- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
-
-{-# START_FILE Handler/Comment.hs #-}
-module Handler.Comment where
-
-import Import
-
-postCommentR :: Handler Value
-postCommentR = do
-    -- requireJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
-    -- (The ToJSON and FromJSON instances are derived in the config/models file).
-    comment <- (requireJsonBody :: Handler Comment)
-
-    -- The YesodAuth instance in Foundation.hs defines the UserId to be the type used for authentication.
-    maybeCurrentUserId <- maybeAuthId
-    let comment' = comment { commentUserId = maybeCurrentUserId }
-
-    insertedComment <- runDB $ insertEntity comment'
-    returnJson insertedComment
-
-{-# START_FILE Handler/Common.hs #-}
--- | Common handler functions.
-module Handler.Common where
-
-import Data.FileEmbed (embedFile)
-import Import
-
--- These handlers embed files in the executable at compile time to avoid a
--- runtime dependency, and for efficiency.
-
-getFaviconR :: Handler TypedContent
-getFaviconR = do cacheSeconds $ 60 * 60 * 24 * 30 -- cache for a month
-                 return $ TypedContent "image/x-icon"
-                        $ toContent $(embedFile "config/favicon.ico")
-
-getRobotsR :: Handler TypedContent
-getRobotsR = return $ TypedContent typePlain
-                    $ toContent $(embedFile "config/robots.txt")
-
-{-# START_FILE Handler/Fay.hs #-}
-module Handler.Fay where
-
-import Fay.Convert (readFromFay)
-import Import
-import Prelude     ((!!))
-import Yesod.Fay
-
-fibs :: [Int]
-fibs = 0 : 1 : zipWith (+) fibs (drop 1 fibs)
-
-onCommand :: CommandHandler App
-onCommand render command =
-    case readFromFay command of
-      Just (GetFib idx r) -> render r $ fibs !! idx
-      Nothing             -> invalidArgs ["Invalid command"]
-
-{-# START_FILE Handler/Home.hs #-}
-module Handler.Home where
-
-import Import
-import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
-import Text.Julius (RawJS (..))
-
--- Define our data that will be used for creating the form.
-data FileForm = FileForm
-    { fileInfo :: FileInfo
-    , fileDescription :: Text
-    }
-
--- This is a handler function for the GET request method on the HomeR
--- resource pattern. All of your resource patterns are defined in
--- config/routes
---
--- The majority of the code you will write in Yesod lives in these handler
--- functions. You can spread them across multiple files if you are so
--- inclined, or create a single monolithic file.
-getHomeR :: Handler Html
-getHomeR = do
-    (formWidget, formEnctype) <- generateFormPost sampleForm
-    let submission = Nothing :: Maybe FileForm
-        handlerName = "getHomeR" :: Text
-    defaultLayout $ do
-        let (commentFormId, commentTextareaId, commentListId) = commentIds
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
-        $(fayFile "Home")
-
-postHomeR :: Handler Html
-postHomeR = do
-    ((result, formWidget), formEnctype) <- runFormPost sampleForm
-    let handlerName = "postHomeR" :: Text
-        submission = case result of
-            FormSuccess res -> Just res
-            _ -> Nothing
-
-    defaultLayout $ do
-        let (commentFormId, commentTextareaId, commentListId) = commentIds
-        aDomId <- newIdent
-        setTitle "Welcome To Yesod!"
-        $(widgetFile "homepage")
-
-sampleForm :: Form FileForm
-sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
-    <$> fileAFormReq "Choose a file"
-    <*> areq textField textSettings Nothing
-    -- Add attributes like the placeholder and CSS classes.
-    where textSettings = FieldSettings
-            { fsLabel = "What's on the file?"
-            , fsTooltip = Nothing
-            , fsId = Nothing
-            , fsName = Nothing
-            , fsAttrs =
-                [ ("class", "form-control")
-                , ("placeholder", "File description")
-                ]
-            }
-
-commentIds :: (Text, Text, Text)
-commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
-
-{-# START_FILE Handler/Profile.hs #-}
-module Handler.Profile where
-
-import Import
-
-getProfileR :: Handler Html
-getProfileR = do
-    (_, user) <- requireAuthPair
-    defaultLayout $ do
-        setTitle . toHtml $ userIdent user <> "'s User page"
-        $(widgetFile "profile")
-
-{-# START_FILE Import.hs #-}
-module Import
-    ( module Import
-    ) where
-
-import Foundation                 as Import
-import Import.NoFoundation        as Import
-import Language.Haskell.TH.Syntax (Exp (ConE))
-import Yesod.Fay                  (FayFile)
-
-fayFile :: FayFile
-fayFile = fayFile' (ConE 'StaticR)
-
-{-# START_FILE Import/NoFoundation.hs #-}
-{-# LANGUAGE CPP #-}
-module Import.NoFoundation
-    ( module Import
-    ) where
-
-import ClassyPrelude.Yesod   as Import
-import Model                 as Import
-import Settings              as Import
-import Settings.StaticFiles  as Import
-import SharedTypes           as Import
-import Yesod.Auth            as Import
-import Yesod.Core.Types      as Import (loggerSet)
-import Yesod.Default.Config2 as Import
-
-{-# START_FILE Model.hs #-}
-{-# LANGUAGE FlexibleInstances #-}
-
-module Model where
-
-import ClassyPrelude.Yesod
-import Database.Persist.Quasi
-
--- You can define all of your database entities in the entities file.
--- You can find more information on persistent and how to declare entities
--- at:
--- http://www.yesodweb.com/book/persistent/
-share [mkPersist sqlSettings, mkMigrate "migrateAll"]
-    $(persistFileWith lowerCaseSettings "config/models")
-
-{-# START_FILE {{name}}.cabal #-}
-name:              {{name}}
-version:           0.0.0
-cabal-version:     >= 1.8
-build-type:        Simple
-
-Flag dev
-    Description:   Turn on development settings, like auto-reload templates.
-    Default:       False
-
-Flag library-only
-    Description:   Build for use with "yesod devel"
-    Default:       False
-
-library
-    hs-source-dirs: ., fay-shared, app
-    exposed-modules: Application
-                     Foundation
-                     Import
-                     Import.NoFoundation
-                     Model
-                     Settings
-                     Settings.StaticFiles
-                     SharedTypes
-                     Handler.Common
-                     Handler.Fay
-                     Handler.Home
-                     Handler.Comment
-                     Handler.Profile
-
-    if flag(dev) || flag(library-only)
-        cpp-options:   -DDEVELOPMENT
-        ghc-options:   -Wall -fwarn-tabs -O0
-    else
-        ghc-options:   -Wall -fwarn-tabs -O2
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                RankNTypes
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-    build-depends:
-                   -- Due to a bug in GHC 8.0.1, we block its usage
-                   -- See: https://ghc.haskell.org/trac/ghc/ticket/12130
-                   base                          >= 4.8.2.0    && < 4.9
-                                              || >= 4.9.1.0    && < 5
-
-                 , yesod                         >= 1.4.3      && < 1.5
-                 , yesod-core                    >= 1.4.30     && < 1.5
-                 , yesod-auth                    >= 1.4.0      && < 1.5
-                 , yesod-static                  >= 1.4.0.3    && < 1.6
-                 , yesod-form                    >= 1.4.0      && < 1.5
-                 , yesod-fay                     >= 0.7        && < 0.9
-                 , fay                           >= 0.21.2.1   && < 0.24
-                 , classy-prelude                >= 0.10.2
-                 , classy-prelude-conduit        >= 0.10.2
-                 -- version 1.0 had a bug in reexporting Handler, causing trouble
-                 , classy-prelude-yesod          >= 0.10.2     && < 1.0
-                                              || >= 1.1
-                 , bytestring                    >= 0.9        && < 0.11
-                 , text                          >= 0.11       && < 2.0
-                 , persistent                    >= 2.0        && < 2.7
-                 , persistent-postgresql         >= 2.1.1      && < 2.7
-                 , persistent-template           >= 2.0        && < 2.7
-                 , template-haskell
-                 , shakespeare                   >= 2.0        && < 2.1
-                 , monad-control                 >= 0.3        && < 1.1
-                 , wai-extra                     >= 3.0        && < 3.1
-                 , yaml                          >= 0.8        && < 0.9
-                 , http-conduit                  >= 2.1        && < 2.3
-                 , directory                     >= 1.1        && < 1.4
-                 , warp                          >= 3.0        && < 3.3
-                 , data-default
-                 , aeson                         >= 0.6        && < 1.1
-                 , conduit                       >= 1.0        && < 2.0
-                 , monad-logger                  >= 0.3        && < 0.4
-                 , fast-logger                   >= 2.2        && < 2.5
-                 , wai-logger                    >= 2.2        && < 2.4
-                 , file-embed
-                 , safe
-                 , unordered-containers
-                 , containers
-                 , vector
-                 , time
-                 , case-insensitive
-                 , wai
-
-executable         {{name}}
-    if flag(library-only)
-        Buildable: False
-
-    main-is:           main.hs
-    hs-source-dirs:    app
-    build-depends:     base, {{name}}
-
-    ghc-options:       -threaded -rtsopts -with-rtsopts=-N
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-test-suite test
-    type:              exitcode-stdio-1.0
-    main-is:           Spec.hs
-    other-modules:     Handler.CommentSpec
-                       Handler.CommonSpec
-                       Handler.HomeSpec
-                       Handler.ProfileSpec
-                       TestImport
-    hs-source-dirs:    test
-    ghc-options:       -Wall
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-    build-depends: base
-                 , {{name}}
-                 , yesod-auth
-                 , yesod-test >= 1.5.2 && < 1.6
-                 , yesod-core
-                 , yesod
-                 , persistent
-                 , persistent-postgresql
-                 , resourcet
-                 , monad-logger
-                 , shakespeare
-                 , transformers
-                 , hspec >= 2.0.0
-                 , classy-prelude
-                 , classy-prelude-yesod
-                 , aeson
-
-{-# START_FILE Settings.hs #-}
-{-# Language CPP #-}
--- | Settings are centralized, as much as possible, into this file. This
--- includes database connection settings, static file locations, etc.
--- In addition, you can configure a number of different aspects of Yesod
--- by overriding methods in the Yesod typeclass. That instance is
--- declared in the Foundation.hs file.
-module Settings where
-
-import ClassyPrelude.Yesod
-import qualified Control.Exception as Exception
-import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
-                                    (.:?))
-import Data.FileEmbed              (embedFile)
-import Data.Yaml                   (decodeEither')
-import Database.Persist.Postgresql (PostgresConf)
-import Language.Haskell.TH.Syntax  (Exp, Name, Q)
-import Network.Wai.Handler.Warp    (HostPreference)
-import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
-import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
-                                    widgetFileReload)
-import Yesod.Fay
-
--- | Runtime settings to configure this application. These settings can be
--- loaded from various sources: defaults, environment variables, config files,
--- theoretically even a database.
-data AppSettings = AppSettings
-    { appStaticDir              :: String
-    -- ^ Directory from which to serve static files.
-    , appDatabaseConf           :: PostgresConf
-    -- ^ Configuration settings for accessing the database.
-    , appRoot                   :: Maybe Text
-    -- ^ Base for all generated URLs. If @Nothing@, determined
-    -- from the request headers.
-    , appHost                   :: HostPreference
-    -- ^ Host/interface the server should bind to.
-    , appPort                   :: Int
-    -- ^ Port to listen on
-    , appIpFromHeader           :: Bool
-    -- ^ Get the IP address from the header when logging. Useful when sitting
-    -- behind a reverse proxy.
-
-    , appDetailedRequestLogging :: Bool
-    -- ^ Use detailed request logging system
-    , appShouldLogAll           :: Bool
-    -- ^ Should all log messages be displayed?
-    , appReloadTemplates        :: Bool
-    -- ^ Use the reload version of templates
-    , appMutableStatic          :: Bool
-    -- ^ Assume that files in the static dir may change after compilation
-    , appSkipCombining          :: Bool
-    -- ^ Perform no stylesheet/script combining
-
-    -- Example app-specific configuration values.
-    , appCopyright              :: Text
-    -- ^ Copyright text to appear in the footer of the page
-    , appAnalytics              :: Maybe Text
-    -- ^ Google Analytics code
-
-    , appAuthDummyLogin         :: Bool
-    -- ^ Indicate if auth dummy login should be enabled.
-    }
-
-instance FromJSON AppSettings where
-    parseJSON = withObject "AppSettings" $ \o -> do
-        let defaultDev =
-#if DEVELOPMENT
-                True
-#else
-                False
-#endif
-        appStaticDir              <- o .: "static-dir"
-        appDatabaseConf           <- o .: "database"
-        appRoot                   <- o .:? "approot"
-        appHost                   <- fromString <$> o .: "host"
-        appPort                   <- o .: "port"
-        appIpFromHeader           <- o .: "ip-from-header"
-
-        appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
-        appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
-        appReloadTemplates        <- o .:? "reload-templates" .!= defaultDev
-        appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
-        appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
-
-        appCopyright              <- o .:  "copyright"
-        appAnalytics              <- o .:? "analytics"
-
-        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= defaultDev
-
-        return AppSettings {..}
-
--- | Settings for 'widgetFile', such as which template languages to support and
--- default Hamlet settings.
---
--- For more information on modifying behavior, see:
---
--- https://github.com/yesodweb/yesod/wiki/Overriding-widgetFile
-widgetFileSettings :: WidgetFileSettings
-widgetFileSettings = def
-
--- | How static files should be combined.
-combineSettings :: CombineSettings
-combineSettings = def
-
--- The rest of this file contains settings which rarely need changing by a
--- user.
-
-widgetFile :: String -> Q Exp
-widgetFile = (if appReloadTemplates compileTimeAppSettings
-                then widgetFileReload
-                else widgetFileNoReload)
-              widgetFileSettings
-
-fayFile' :: Exp -> FayFile
-fayFile' staticR moduleName =
-    (if appReloadTemplates compileTimeAppSettings
-        then fayFileReload
-        else fayFileProd)
-     settings
-  where
-    settings = (yesodFaySettings moduleName)
-        { yfsSeparateRuntime = Just ("static", staticR)
-        -- , yfsPostProcess = readProcess "java" ["-jar", "closure-compiler.jar"]
-        , yfsExternal = Just ("static", staticR)
-        , yfsPackages = ["fay-dom"]
-        }
-
--- | Raw bytes at compile time of @config/settings.yml@
-configSettingsYmlBS :: ByteString
-configSettingsYmlBS = $(embedFile configSettingsYml)
-
--- | @config/settings.yml@, parsed to a @Value@.
-configSettingsYmlValue :: Value
-configSettingsYmlValue = either Exception.throw id
-                       $ decodeEither' configSettingsYmlBS
-
--- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
-compileTimeAppSettings :: AppSettings
-compileTimeAppSettings =
-    case fromJSON $ applyEnvValue False mempty configSettingsYmlValue of
-        Error e -> error e
-        Success settings -> settings
-
--- The following two functions can be used to combine multiple CSS or JS files
--- at compile time to decrease the number of http requests.
--- Sample usage (inside a Widget):
---
--- > $(combineStylesheets 'StaticR [style1_css, style2_css])
-
-combineStylesheets :: Name -> [Route Static] -> Q Exp
-combineStylesheets = combineStylesheets'
-    (appSkipCombining compileTimeAppSettings)
-    combineSettings
-
-combineScripts :: Name -> [Route Static] -> Q Exp
-combineScripts = combineScripts'
-    (appSkipCombining compileTimeAppSettings)
-    combineSettings
-
-{-# START_FILE Settings/StaticFiles.hs #-}
-module Settings.StaticFiles where
-
-import Settings     (appStaticDir, compileTimeAppSettings)
-import Yesod.Static (staticFiles)
-
--- This generates easy references to files in the static directory at compile time,
--- giving you compile-time verification that referenced files exist.
--- Warning: any files added to your static directory during run-time can't be
--- accessed this way. You'll have to use their FilePath or URL to access them.
---
--- For example, to refer to @static/js/script.js@ via an identifier, you'd use:
---
---     js_script_js
---
--- If the identifier is not available, you may use:
---
---     StaticFile ["js", "script.js"] []
-staticFiles (appStaticDir compileTimeAppSettings)
+*~
+\#*
+{{name}}.cabal
 
 {-# START_FILE app/DevelMain.hs #-}
 -- | Running your app inside GHCi.
@@ -1359,18 +384,973 @@ main = do
         index <- parseInt indexS
         call (GetFib index) $ setInnerHTML result . T.pack . show
 
+{-# START_FILE package.yaml #-}
+name:    {{name}}
+version: "0.0.0"
+
+dependencies:
+
+# Due to a bug in GHC 8.0.1, we block its usage
+# See: https://ghc.haskell.org/trac/ghc/ticket/12130
+- base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
+
+# version 1.0 had a bug in reexporting Handler, causing trouble
+- classy-prelude-yesod >=0.10.2 && <1.0 || >=1.1
+
+- yesod >=1.4.3 && <1.5
+- yesod-core >=1.4.30 && <1.5
+- yesod-auth >=1.4.0 && <1.5
+- yesod-static >=1.4.0.3 && <1.6
+- yesod-form >=1.4.0 && <1.5
+- yesod-fay >= 0.7 && < 0.9
+- fay >= 0.21.2.1 && < 0.24
+- classy-prelude >=0.10.2
+- classy-prelude-conduit >=0.10.2
+- bytestring >=0.9 && <0.11
+- text >=0.11 && <2.0
+- persistent >=2.0 && <2.8
+- persistent-postgresql >=2.1.1 && <2.8
+- persistent-template >=2.0 && <2.8
+- template-haskell
+- shakespeare >=2.0 && <2.1
+- hjsmin >=0.1 && <0.3
+- monad-control >=0.3 && <1.1
+- wai-extra >=3.0 && <3.1
+- yaml >=0.8 && <0.9
+- http-conduit >=2.1 && <2.3
+- directory >=1.1 && <1.4
+- warp >=3.0 && <3.3
+- data-default
+- aeson >=0.6 && <1.3
+- conduit >=1.0 && <2.0
+- monad-logger >=0.3 && <0.4
+- fast-logger >=2.2 && <2.5
+- wai-logger >=2.2 && <2.4
+- file-embed
+- safe
+- unordered-containers
+- containers
+- vector
+- time
+- case-insensitive
+- wai
+
+# The library contains all of our application code. The executable
+# defined below is just a thin wrapper.
+library:
+  source-dirs:
+  - src
+  - fay-shared
+  when:
+  - condition: (flag(dev)) || (flag(library-only))
+    then:
+      ghc-options:
+      - -Wall
+      - -fwarn-tabs
+      - -O0
+      cpp-options: -DDEVELOPMENT
+    else:
+      ghc-options:
+      - -Wall
+      - -fwarn-tabs
+      - -O2
+
+# Runnable executable for our application
+executables:
+  {{name}}:
+    main: main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+    when:
+    - condition: flag(library-only)
+      buildable: false
+
+# Test suite
+tests:
+  test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options: -Wall
+    dependencies:
+    - {{name}}
+    - hspec >=2.0.0
+    - yesod-test
+
+# Define flags used by "yesod devel" to make compilation faster
+flags:
+  library-only:
+    description: Build for use with "yesod devel"
+    manual: false
+    default: false
+  dev:
+    description: Turn on development settings, like auto-reload templates.
+    manual: false
+    default: false
+
+{-# START_FILE src/Application.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+module Application
+    ( getApplicationDev
+    , appMain
+    , develMain
+    , makeFoundation
+    , makeLogWare
+    -- * for DevelMain
+    , getApplicationRepl
+    , shutdownApp
+    -- * for GHCI
+    , handler
+    , db
+    ) where
+
+import Control.Monad.Logger                 (liftLoc, runLoggingT)
+import Database.Persist.Postgresql          (createPostgresqlPool, pgConnStr,
+                                             pgPoolSize, runSqlPool)
+import Import
+import Language.Haskell.TH.Syntax           (qLocation)
+import Network.Wai (Middleware)
+import Network.Wai.Handler.Warp             (Settings, defaultSettings,
+                                             defaultShouldDisplayException,
+                                             runSettings, setHost,
+                                             setOnException, setPort, getPort)
+import Network.Wai.Middleware.RequestLogger (Destination (Logger),
+                                             IPAddrSource (..),
+                                             OutputFormat (..), destination,
+                                             mkRequestLogger, outputFormat)
+import System.Log.FastLogger                (defaultBufSize, newStdoutLoggerSet,
+                                             toLogStr)
+import Yesod.Fay                            (getFaySite)
+
+-- Import all relevant handler modules here.
+-- Don't forget to add new modules to your cabal file!
+import Handler.Common
+import Handler.Fay
+import Handler.Home
+import Handler.Comment
+import Handler.Profile
+
+-- This line actually creates our YesodDispatch instance. It is the second half
+-- of the call to mkYesodData which occurs in Foundation.hs. Please see the
+-- comments there for more details.
+mkYesodDispatch "App" resourcesApp
+
+-- | This function allocates resources (such as a database connection pool),
+-- performs initialization and returns a foundation datatype value. This is also
+-- the place to put your migrate statements to have automatic database
+-- migrations handled by Yesod.
+makeFoundation :: AppSettings -> IO App
+makeFoundation appSettings = do
+    -- Some basic initializations: HTTP connection manager, logger, and static
+    -- subsite.
+    appHttpManager <- newManager
+    appLogger <- newStdoutLoggerSet defaultBufSize >>= makeYesodLogger
+    appStatic <-
+        (if appMutableStatic appSettings then staticDevel else static)
+        (appStaticDir appSettings)
+    let appFayCommandHandler = onCommand
+
+    -- We need a log function to create a connection pool. We need a connection
+    -- pool to create our foundation. And we need our foundation to get a
+    -- logging function. To get out of this loop, we initially create a
+    -- temporary foundation without a real connection pool, get a log function
+    -- from there, and then create the real foundation.
+    let mkFoundation appConnPool = App {..}
+        -- The App {..} syntax is an example of record wild cards. For more
+        -- information, see:
+        -- https://ocharles.org.uk/blog/posts/2014-12-04-record-wildcards.html
+        tempFoundation = mkFoundation $ error "connPool forced in tempFoundation"
+        logFunc = messageLoggerSource tempFoundation appLogger
+
+    -- Create the database connection pool
+    pool <- flip runLoggingT logFunc $ createPostgresqlPool
+        (pgConnStr  $ appDatabaseConf appSettings)
+        (pgPoolSize $ appDatabaseConf appSettings)
+
+    -- Perform database migration using our application's logging settings.
+    runLoggingT (runSqlPool (runMigration migrateAll) pool) logFunc
+
+    -- Return the foundation
+    return $ mkFoundation pool
+
+-- | Convert our foundation to a WAI Application by calling @toWaiAppPlain@ and
+-- applying some additional middlewares.
+makeApplication :: App -> IO Application
+makeApplication foundation = do
+    logWare <- makeLogWare foundation
+    -- Create the WAI application and apply middlewares
+    appPlain <- toWaiAppPlain foundation
+    return $ logWare $ defaultMiddlewaresNoLogging appPlain
+
+makeLogWare :: App -> IO Middleware
+makeLogWare foundation =
+    mkRequestLogger def
+        { outputFormat =
+            if appDetailedRequestLogging $ appSettings foundation
+                then Detailed True
+                else Apache
+                        (if appIpFromHeader $ appSettings foundation
+                            then FromFallback
+                            else FromSocket)
+        , destination = Logger $ loggerSet $ appLogger foundation
+        }
+
+
+-- | Warp settings for the given foundation value.
+warpSettings :: App -> Settings
+warpSettings foundation =
+      setPort (appPort $ appSettings foundation)
+    $ setHost (appHost $ appSettings foundation)
+    $ setOnException (\_req e ->
+        when (defaultShouldDisplayException e) $ messageLoggerSource
+            foundation
+            (appLogger foundation)
+            $(qLocation >>= liftLoc)
+            "yesod"
+            LevelError
+            (toLogStr $ "Exception from Warp: " ++ show e))
+      defaultSettings
+
+-- | For yesod devel, return the Warp settings and WAI Application.
+getApplicationDev :: IO (Settings, Application)
+getApplicationDev = do
+    settings <- getAppSettings
+    foundation <- makeFoundation settings
+    wsettings <- getDevSettings $ warpSettings foundation
+    app <- makeApplication foundation
+    return (wsettings, app)
+
+getAppSettings :: IO AppSettings
+getAppSettings = loadYamlSettings [configSettingsYml] [] useEnv
+
+-- | main function for use by yesod devel
+develMain :: IO ()
+develMain = develMainHelper getApplicationDev
+
+-- | The @main@ function for an executable running this site.
+appMain :: IO ()
+appMain = do
+    -- Get the settings from all relevant sources
+    settings <- loadYamlSettingsArgs
+        -- fall back to compile-time values, set to [] to require values at runtime
+        [configSettingsYmlValue]
+
+        -- allow environment variables to override
+        useEnv
+
+    -- Generate the foundation from the settings
+    foundation <- makeFoundation settings
+
+    -- Generate a WAI Application from the foundation
+    app <- makeApplication foundation
+
+    -- Run the application with Warp
+    runSettings (warpSettings foundation) app
+
+
+--------------------------------------------------------------
+-- Functions for DevelMain.hs (a way to run the app from GHCi)
+--------------------------------------------------------------
+getApplicationRepl :: IO (Int, App, Application)
+getApplicationRepl = do
+    settings <- getAppSettings
+    foundation <- makeFoundation settings
+    wsettings <- getDevSettings $ warpSettings foundation
+    app1 <- makeApplication foundation
+    return (getPort wsettings, foundation, app1)
+
+shutdownApp :: App -> IO ()
+shutdownApp _ = return ()
+
+
+---------------------------------------------
+-- Functions for use in development with GHCi
+---------------------------------------------
+
+-- | Run a handler
+handler :: Handler a -> IO a
+handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
+
+-- | Run DB queries
+db :: ReaderT SqlBackend (HandlerT App IO) a -> IO a
+db = handler . runDB
+
+{-# START_FILE src/Foundation.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes #-}
+module Foundation where
+
+import Database.Persist.Sql        (ConnectionPool, runSqlPool)
+import Import.NoFoundation
+import Text.Hamlet                 (hamletFile)
+
+-- Used only when in "auth-dummy-login" setting is enabled.
+import Yesod.Auth.Dummy
+
+import Yesod.Auth.OpenId           (authOpenId, IdentifierType (Claimed))
+import qualified Yesod.Core.Unsafe as Unsafe
+import Yesod.Core.Types            (Logger)
+import Yesod.Default.Util          (addStaticContentExternal)
+import Yesod.Fay
+import qualified Data.CaseInsensitive as CI
+import qualified Data.Text.Encoding as TE
+
+-- | The foundation datatype for your application. This can be a good place to
+-- keep settings and values requiring initialization before your application
+-- starts running, such as database connections. Every handler will have
+-- access to the data present here.
+data App = App
+    { appSettings          :: AppSettings
+    , appStatic            :: Static -- ^ Settings for static file serving.
+    , appConnPool          :: ConnectionPool -- ^ Database connection pool.
+    , appHttpManager       :: Manager
+    , appLogger            :: Logger
+    , appFayCommandHandler :: CommandHandler App
+    }
+
+data MenuItem = MenuItem
+    { menuItemLabel :: Text
+    , menuItemRoute :: Route App
+    , menuItemAccessCallback :: Bool
+    }
+
+data MenuTypes
+    = NavbarLeft MenuItem
+    | NavbarRight MenuItem
+
+-- This is where we define all of the routes in our application. For a full
+-- explanation of the syntax, please see:
+-- http://www.yesodweb.com/book/routing-and-handlers
+--
+-- Note that this is really half the story; in Application.hs, mkYesodDispatch
+-- generates the rest of the code. Please see the following documentation
+-- for an explanation for this split:
+-- http://www.yesodweb.com/book/scaffolding-and-the-site-template#scaffolding-and-the-site-template_foundation_and_application_modules
+--
+-- This function also generates the following type synonyms:
+-- type Handler = HandlerT App IO
+-- type Widget = WidgetT App IO ()
+mkYesodData "App" $(parseRoutesFile "config/routes")
+
+-- | A convenient synonym for creating forms.
+type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
+
+-- Please see the documentation for the Yesod typeclass. There are a number
+-- of settings which can be configured by overriding methods here.
+instance Yesod App where
+    -- Controls the base of generated URLs. For more information on modifying,
+    -- see: https://github.com/yesodweb/yesod/wiki/Overriding-approot
+    approot = ApprootRequest $ \app req ->
+        case appRoot $ appSettings app of
+            Nothing -> getApprootText guessApproot app req
+            Just root -> root
+
+    -- Store session data on the client in encrypted cookies,
+    -- default session idle timeout is 120 minutes
+    makeSessionBackend _ = Just <$> defaultClientSessionBackend
+        120    -- timeout in minutes
+        "config/client_session_key.aes"
+
+    -- Yesod Middleware allows you to run code before and after each handler function.
+    -- The defaultYesodMiddleware adds the response header "Vary: Accept, Accept-Language" and performs authorization checks.
+    -- Some users may also want to add the defaultCsrfMiddleware, which:
+    --   a) Sets a cookie with a CSRF token in it.
+    --   b) Validates that incoming write requests include that token in either a header or POST parameter.
+    -- To add it, chain it together with the defaultMiddleware: yesodMiddleware = defaultYesodMiddleware . defaultCsrfMiddleware
+    -- For details, see the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package.
+    yesodMiddleware = defaultYesodMiddleware
+
+    defaultLayout widget = do
+        master <- getYesod
+        mmsg <- getMessage
+
+        muser <- maybeAuthPair
+        mcurrentRoute <- getCurrentRoute
+
+        -- Get the breadcrumbs, as defined in the YesodBreadcrumbs instance.
+        (title, parents) <- breadcrumbs
+
+        -- Define the menu items of the header.
+        let menuItems =
+                [ NavbarLeft $ MenuItem
+                    { menuItemLabel = "Home"
+                    , menuItemRoute = HomeR
+                    , menuItemAccessCallback = True
+                    }
+                , NavbarLeft $ MenuItem
+                    { menuItemLabel = "Profile"
+                    , menuItemRoute = ProfileR
+                    , menuItemAccessCallback = isJust muser
+                    }
+                , NavbarRight $ MenuItem
+                    { menuItemLabel = "Login"
+                    , menuItemRoute = AuthR LoginR
+                    , menuItemAccessCallback = isNothing muser
+                    }
+                , NavbarRight $ MenuItem
+                    { menuItemLabel = "Logout"
+                    , menuItemRoute = AuthR LogoutR
+                    , menuItemAccessCallback = isJust muser
+                    }
+                ]
+
+        let navbarLeftMenuItems = [x | NavbarLeft x <- menuItems]
+        let navbarRightMenuItems = [x | NavbarRight x <- menuItems]
+
+        let navbarLeftFilteredMenuItems = [x | x <- navbarLeftMenuItems, menuItemAccessCallback x]
+        let navbarRightFilteredMenuItems = [x | x <- navbarRightMenuItems, menuItemAccessCallback x]
+
+        -- We break up the default layout into two components:
+        -- default-layout is the contents of the body tag, and
+        -- default-layout-wrapper is the entire page. Since the final
+        -- value passed to hamletToRepHtml cannot be a widget, this allows
+        -- you to use normal widget features in default-layout.
+
+        pc <- widgetToPageContent $ do
+            addStylesheet $ StaticR css_bootstrap_css
+            $(widgetFile "default-layout")
+        withUrlRenderer $(hamletFile "templates/default-layout-wrapper.hamlet")
+
+    -- The page to be redirected to when authentication is required.
+    authRoute _ = Just $ AuthR LoginR
+
+    -- Routes not requiring authentication.
+    isAuthorized (AuthR _) _ = return Authorized
+    isAuthorized CommentR _ = return Authorized
+    isAuthorized HomeR _ = return Authorized
+    isAuthorized FaviconR _ = return Authorized
+    isAuthorized RobotsR _ = return Authorized
+    isAuthorized (StaticR _) _ = return Authorized
+    isAuthorized (FaySiteR _) _ = return Authorized
+
+    isAuthorized ProfileR _ = isAuthenticated
+
+    -- This function creates static content files in the static folder
+    -- and names them based on a hash of their content. This allows
+    -- expiration dates to be set far in the future without worry of
+    -- users receiving stale content.
+    addStaticContent ext mime content = do
+        master <- getYesod
+        let staticDir = appStaticDir $ appSettings master
+        addStaticContentExternal
+            Right
+            genFileName
+            staticDir
+            (StaticR . flip StaticRoute [])
+            ext
+            mime
+            content
+      where
+        -- Generate a unique filename based on the content itself
+        genFileName lbs = "autogen-" ++ base64md5 lbs
+
+    -- What messages should be logged. The following includes all messages when
+    -- in development, and warnings and errors in production.
+    shouldLog app _source level =
+        appShouldLogAll (appSettings app)
+            || level == LevelWarn
+            || level == LevelError
+
+    makeLogger = return . appLogger
+
+    -- Provide proper Bootstrap styling for default displays, like
+    -- error pages
+    defaultMessageWidget title body = $(widgetFile "default-message-widget")
+
+instance YesodJquery App
+instance YesodFay App where
+
+    fayRoute = FaySiteR
+
+    yesodFayCommand render command = do
+        master <- getYesod
+        appFayCommandHandler master render command
+
+-- Define breadcrumbs.
+instance YesodBreadcrumbs App where
+  breadcrumb HomeR = return ("Home", Nothing)
+  breadcrumb (AuthR _) = return ("Login", Just HomeR)
+  breadcrumb ProfileR = return ("Profile", Just HomeR)
+  breadcrumb  _ = return ("home", Nothing)
+
+-- How to run database actions.
+instance YesodPersist App where
+    type YesodPersistBackend App = SqlBackend
+    runDB action = do
+        master <- getYesod
+        runSqlPool action $ appConnPool master
+instance YesodPersistRunner App where
+    getDBRunner = defaultGetDBRunner appConnPool
+
+instance YesodAuth App where
+    type AuthId App = UserId
+
+    -- Where to send a user after successful login
+    loginDest _ = HomeR
+    -- Where to send a user after logout
+    logoutDest _ = HomeR
+    -- Override the above two destinations when a Referer: header is present
+    redirectToReferer _ = True
+
+    authenticate creds = runDB $ do
+        x <- getBy $ UniqueUser $ credsIdent creds
+        case x of
+            Just (Entity uid _) -> return $ Authenticated uid
+            Nothing -> Authenticated <$> insert User
+                { userIdent = credsIdent creds
+                , userPassword = Nothing
+                }
+
+    -- You can add other plugins like Google Email, email or OAuth here
+    authPlugins app = [authOpenId Claimed []] ++ extraAuthPlugins
+        -- Enable authDummy login if enabled.
+        where extraAuthPlugins = [authDummy | appAuthDummyLogin $ appSettings app]
+
+    authHttpManager = getHttpManager
+
+-- | Access function to determine if a user is logged in.
+isAuthenticated :: Handler AuthResult
+isAuthenticated = do
+    muid <- maybeAuthId
+    return $ case muid of
+        Nothing -> Unauthorized "You must login to access this page"
+        Just _ -> Authorized
+
+instance YesodAuthPersist App
+
+-- This instance is required to use forms. You can modify renderMessage to
+-- achieve customized and internationalized form validation messages.
+instance RenderMessage App FormMessage where
+    renderMessage _ _ = defaultFormMessage
+
+-- Useful when writing code that is re-usable outside of the Handler context.
+-- An example is background jobs that send email.
+-- This can also be useful for writing code that works across multiple Yesod applications.
+instance HasHttpManager App where
+    getHttpManager = appHttpManager
+
+unsafeHandler :: App -> Handler a -> IO a
+unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
+
+-- Note: Some functionality previously present in the scaffolding has been
+-- moved to documentation in the Wiki. Following are some hopefully helpful
+-- links:
+--
+-- https://github.com/yesodweb/yesod/wiki/Sending-email
+-- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
+-- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
+
+{-# START_FILE src/Handler/Comment.hs #-}
+module Handler.Comment where
+
+import Import
+
+postCommentR :: Handler Value
+postCommentR = do
+    -- requireJsonBody will parse the request body into the appropriate type, or return a 400 status code if the request JSON is invalid.
+    -- (The ToJSON and FromJSON instances are derived in the config/models file).
+    comment <- (requireJsonBody :: Handler Comment)
+
+    -- The YesodAuth instance in Foundation.hs defines the UserId to be the type used for authentication.
+    maybeCurrentUserId <- maybeAuthId
+    let comment' = comment { commentUserId = maybeCurrentUserId }
+
+    insertedComment <- runDB $ insertEntity comment'
+    returnJson insertedComment
+
+{-# START_FILE src/Handler/Common.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+-- | Common handler functions.
+module Handler.Common where
+
+import Data.FileEmbed (embedFile)
+import Import
+
+-- These handlers embed files in the executable at compile time to avoid a
+-- runtime dependency, and for efficiency.
+
+getFaviconR :: Handler TypedContent
+getFaviconR = do cacheSeconds $ 60 * 60 * 24 * 30 -- cache for a month
+                 return $ TypedContent "image/x-icon"
+                        $ toContent $(embedFile "config/favicon.ico")
+
+getRobotsR :: Handler TypedContent
+getRobotsR = return $ TypedContent typePlain
+                    $ toContent $(embedFile "config/robots.txt")
+
+{-# START_FILE src/Handler/Fay.hs #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Handler.Fay where
+
+import Fay.Convert (readFromFay)
+import Import
+import Prelude     ((!!))
+import Yesod.Fay
+
+fibs :: [Int]
+fibs = 0 : 1 : zipWith (+) fibs (drop 1 fibs)
+
+onCommand :: CommandHandler App
+onCommand render command =
+    case readFromFay command of
+      Just (GetFib idx r) -> render r $ fibs !! idx
+      Nothing             -> invalidArgs ["Invalid command"]
+
+{-# START_FILE src/Handler/Home.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+module Handler.Home where
+
+import Import
+import Yesod.Form.Bootstrap3 (BootstrapFormLayout (..), renderBootstrap3)
+import Text.Julius (RawJS (..))
+
+-- Define our data that will be used for creating the form.
+data FileForm = FileForm
+    { fileInfo :: FileInfo
+    , fileDescription :: Text
+    }
+
+-- This is a handler function for the GET request method on the HomeR
+-- resource pattern. All of your resource patterns are defined in
+-- config/routes
+--
+-- The majority of the code you will write in Yesod lives in these handler
+-- functions. You can spread them across multiple files if you are so
+-- inclined, or create a single monolithic file.
+getHomeR :: Handler Html
+getHomeR = do
+    (formWidget, formEnctype) <- generateFormPost sampleForm
+    let submission = Nothing :: Maybe FileForm
+        handlerName = "getHomeR" :: Text
+    defaultLayout $ do
+        let (commentFormId, commentTextareaId, commentListId) = commentIds
+        aDomId <- newIdent
+        setTitle "Welcome To Yesod!"
+        $(widgetFile "homepage")
+        $(fayFile "Home")
+
+postHomeR :: Handler Html
+postHomeR = do
+    ((result, formWidget), formEnctype) <- runFormPost sampleForm
+    let handlerName = "postHomeR" :: Text
+        submission = case result of
+            FormSuccess res -> Just res
+            _ -> Nothing
+
+    defaultLayout $ do
+        let (commentFormId, commentTextareaId, commentListId) = commentIds
+        aDomId <- newIdent
+        setTitle "Welcome To Yesod!"
+        $(widgetFile "homepage")
+
+sampleForm :: Form FileForm
+sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
+    <$> fileAFormReq "Choose a file"
+    <*> areq textField textSettings Nothing
+    -- Add attributes like the placeholder and CSS classes.
+    where textSettings = FieldSettings
+            { fsLabel = "What's on the file?"
+            , fsTooltip = Nothing
+            , fsId = Nothing
+            , fsName = Nothing
+            , fsAttrs =
+                [ ("class", "form-control")
+                , ("placeholder", "File description")
+                ]
+            }
+
+commentIds :: (Text, Text, Text)
+commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
+
+{-# START_FILE src/Handler/Profile.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+module Handler.Profile where
+
+import Import
+
+getProfileR :: Handler Html
+getProfileR = do
+    (_, user) <- requireAuthPair
+    defaultLayout $ do
+        setTitle . toHtml $ userIdent user <> "'s User page"
+        $(widgetFile "profile")
+
+{-# START_FILE src/Import.hs #-}
+{-# LANGUAGE TemplateHaskell #-}
+module Import
+    ( module Import
+    ) where
+
+import Foundation                 as Import
+import Import.NoFoundation        as Import
+import Language.Haskell.TH.Syntax (Exp (ConE))
+import Yesod.Fay                  (FayFile)
+
+fayFile :: FayFile
+fayFile = fayFile' (ConE 'StaticR)
+
+{-# START_FILE src/Import/NoFoundation.hs #-}
+{-# LANGUAGE CPP #-}
+module Import.NoFoundation
+    ( module Import
+    ) where
+
+import ClassyPrelude.Yesod   as Import
+import Model                 as Import
+import Settings              as Import
+import Settings.StaticFiles  as Import
+import SharedTypes           as Import
+import Yesod.Auth            as Import
+import Yesod.Core.Types      as Import (loggerSet)
+import Yesod.Default.Config2 as Import
+
+{-# START_FILE src/Model.hs #-}
+{-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
+module Model where
+
+import ClassyPrelude.Yesod
+import Database.Persist.Quasi
+
+-- You can define all of your database entities in the entities file.
+-- You can find more information on persistent and how to declare entities
+-- at:
+-- http://www.yesodweb.com/book/persistent/
+share [mkPersist sqlSettings, mkMigrate "migrateAll"]
+    $(persistFileWith lowerCaseSettings "config/models")
+
+{-# START_FILE src/Settings.hs #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
+-- | Settings are centralized, as much as possible, into this file. This
+-- includes database connection settings, static file locations, etc.
+-- In addition, you can configure a number of different aspects of Yesod
+-- by overriding methods in the Yesod typeclass. That instance is
+-- declared in the Foundation.hs file.
+module Settings where
+
+import ClassyPrelude.Yesod
+import qualified Control.Exception as Exception
+import Data.Aeson                  (Result (..), fromJSON, withObject, (.!=),
+                                    (.:?))
+import Data.FileEmbed              (embedFile)
+import Data.Yaml                   (decodeEither')
+import Database.Persist.Postgresql (PostgresConf)
+import Language.Haskell.TH.Syntax  (Exp, Name, Q)
+import Network.Wai.Handler.Warp    (HostPreference)
+import Yesod.Default.Config2       (applyEnvValue, configSettingsYml)
+import Yesod.Default.Util          (WidgetFileSettings, widgetFileNoReload,
+                                    widgetFileReload)
+import Yesod.Fay
+
+-- | Runtime settings to configure this application. These settings can be
+-- loaded from various sources: defaults, environment variables, config files,
+-- theoretically even a database.
+data AppSettings = AppSettings
+    { appStaticDir              :: String
+    -- ^ Directory from which to serve static files.
+    , appDatabaseConf           :: PostgresConf
+    -- ^ Configuration settings for accessing the database.
+    , appRoot                   :: Maybe Text
+    -- ^ Base for all generated URLs. If @Nothing@, determined
+    -- from the request headers.
+    , appHost                   :: HostPreference
+    -- ^ Host/interface the server should bind to.
+    , appPort                   :: Int
+    -- ^ Port to listen on
+    , appIpFromHeader           :: Bool
+    -- ^ Get the IP address from the header when logging. Useful when sitting
+    -- behind a reverse proxy.
+
+    , appDetailedRequestLogging :: Bool
+    -- ^ Use detailed request logging system
+    , appShouldLogAll           :: Bool
+    -- ^ Should all log messages be displayed?
+    , appReloadTemplates        :: Bool
+    -- ^ Use the reload version of templates
+    , appMutableStatic          :: Bool
+    -- ^ Assume that files in the static dir may change after compilation
+    , appSkipCombining          :: Bool
+    -- ^ Perform no stylesheet/script combining
+
+    -- Example app-specific configuration values.
+    , appCopyright              :: Text
+    -- ^ Copyright text to appear in the footer of the page
+    , appAnalytics              :: Maybe Text
+    -- ^ Google Analytics code
+
+    , appAuthDummyLogin         :: Bool
+    -- ^ Indicate if auth dummy login should be enabled.
+    }
+
+instance FromJSON AppSettings where
+    parseJSON = withObject "AppSettings" $ \o -> do
+        let defaultDev =
+#ifdef DEVELOPMENT
+                True
+#else
+                False
+#endif
+        appStaticDir              <- o .: "static-dir"
+        appDatabaseConf           <- o .: "database"
+        appRoot                   <- o .:? "approot"
+        appHost                   <- fromString <$> o .: "host"
+        appPort                   <- o .: "port"
+        appIpFromHeader           <- o .: "ip-from-header"
+
+        appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
+        appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
+        appReloadTemplates        <- o .:? "reload-templates" .!= defaultDev
+        appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
+        appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
+
+        appCopyright              <- o .:  "copyright"
+        appAnalytics              <- o .:? "analytics"
+
+        appAuthDummyLogin         <- o .:? "auth-dummy-login"      .!= defaultDev
+
+        return AppSettings {..}
+
+-- | Settings for 'widgetFile', such as which template languages to support and
+-- default Hamlet settings.
+--
+-- For more information on modifying behavior, see:
+--
+-- https://github.com/yesodweb/yesod/wiki/Overriding-widgetFile
+widgetFileSettings :: WidgetFileSettings
+widgetFileSettings = def
+
+-- | How static files should be combined.
+combineSettings :: CombineSettings
+combineSettings = def
+
+-- The rest of this file contains settings which rarely need changing by a
+-- user.
+
+widgetFile :: String -> Q Exp
+widgetFile = (if appReloadTemplates compileTimeAppSettings
+                then widgetFileReload
+                else widgetFileNoReload)
+              widgetFileSettings
+
+fayFile' :: Exp -> FayFile
+fayFile' staticR moduleName =
+    (if appReloadTemplates compileTimeAppSettings
+        then fayFileReload
+        else fayFileProd)
+     settings
+  where
+    settings = (yesodFaySettings moduleName)
+        { yfsSeparateRuntime = Just ("static", staticR)
+        -- , yfsPostProcess = readProcess "java" ["-jar", "closure-compiler.jar"]
+        , yfsExternal = Just ("static", staticR)
+        , yfsPackages = ["fay-dom"]
+        }
+
+-- | Raw bytes at compile time of @config/settings.yml@
+configSettingsYmlBS :: ByteString
+configSettingsYmlBS = $(embedFile configSettingsYml)
+
+-- | @config/settings.yml@, parsed to a @Value@.
+configSettingsYmlValue :: Value
+configSettingsYmlValue = either Exception.throw id
+                       $ decodeEither' configSettingsYmlBS
+
+-- | A version of @AppSettings@ parsed at compile time from @config/settings.yml@.
+compileTimeAppSettings :: AppSettings
+compileTimeAppSettings =
+    case fromJSON $ applyEnvValue False mempty configSettingsYmlValue of
+        Error e -> error e
+        Success settings -> settings
+
+-- The following two functions can be used to combine multiple CSS or JS files
+-- at compile time to decrease the number of http requests.
+-- Sample usage (inside a Widget):
+--
+-- > $(combineStylesheets 'StaticR [style1_css, style2_css])
+
+combineStylesheets :: Name -> [Route Static] -> Q Exp
+combineStylesheets = combineStylesheets'
+    (appSkipCombining compileTimeAppSettings)
+    combineSettings
+
+combineScripts :: Name -> [Route Static] -> Q Exp
+combineScripts = combineScripts'
+    (appSkipCombining compileTimeAppSettings)
+    combineSettings
+
+{-# START_FILE src/Settings/StaticFiles.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
+module Settings.StaticFiles where
+
+import Settings     (appStaticDir, compileTimeAppSettings)
+import Yesod.Static (staticFiles)
+
+-- This generates easy references to files in the static directory at compile time,
+-- giving you compile-time verification that referenced files exist.
+-- Warning: any files added to your static directory during run-time can't be
+-- accessed this way. You'll have to use their FilePath or URL to access them.
+--
+-- For example, to refer to @static/js/script.js@ via an identifier, you'd use:
+--
+--     js_script_js
+--
+-- If the identifier is not available, you may use:
+--
+--     StaticFile ["js", "script.js"] []
+staticFiles (appStaticDir compileTimeAppSettings)
+
 {-# START_FILE static/css/bootstrap.css #-}
 @import url("https://fonts.googleapis.com/css?family=Lato:400,700,400italic");
 /*!
  * bootswatch v3.3.7
  * Homepage: http://bootswatch.com
- * Copyright 2012-2017 Thomas Park
+ * Copyright 2012-2016 Thomas Park
  * Licensed under MIT
  * Based on Bootstrap
 */
 /*!
  * Bootstrap v3.3.7 (http://getbootstrap.com)
- * Copyright 2011-2017 Twitter, Inc.
+ * Copyright 2011-2016 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
  */
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
@@ -8971,7 +8951,7 @@ Rj3IzE8YKgGEh8OmOkN4KuO6GYyNnRhoWNSgmY9+VfMfhBm7xIwZPp7ggg==
 <glyph unicode="&#xe199;" d="M100 200h400v-155l-75 -45h350l-75 45v155h400l-270 300h170l-270 300h170l-300 333l-300 -333h170l-270 -300h170z" />
 <glyph unicode="&#xe200;" d="M121 700q0 -53 28.5 -97t75.5 -65q-4 -16 -4 -38q0 -74 52.5 -126.5t126.5 -52.5q56 0 100 30v-306l-75 -45h350l-75 45v306q46 -30 100 -30q74 0 126.5 52.5t52.5 126.5q0 24 -9 55q50 32 79.5 83t29.5 112q0 90 -61.5 155.5t-150.5 71.5q-26 89 -99.5 145.5 t-167.5 56.5q-116 0 -197.5 -81.5t-81.5 -197.5q0 -4 1 -11.5t1 -11.5q-14 2 -23 2q-74 0 -126.5 -52.5t-52.5 -126.5z" />
 </font>
-</defs></svg>
+</defs></svg> 
 {-# START_FILE BASE64 static/fonts/glyphicons-halflings-regular.ttf #-}
 AAEAAAARAQAABAAQRkZUTWpVwvAAAAEcAAAAHEdERUYBCAAEAAABOAAAACBPUy8yZ6dLhAAAAVgA
 AABgY21hcErwCZoAAAG4AAACcmN2dCAAKAOHAAAELAAAAAhmcGdtU7QvpwAABDQAAAJlZ2FzcAAA
@@ -10503,6 +10483,8 @@ li {
       Your data is protected with us <strong><span class="username">#{userIdent user}</span></strong>!
 
 {-# START_FILE test/Handler/CommentSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.CommentSpec (spec) where
 
 import TestImport
@@ -10565,6 +10547,8 @@ spec = withApp $ do
             statusIs 200
 
 {-# START_FILE test/Handler/HomeSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.HomeSpec (spec) where
 
 import TestImport
@@ -10600,6 +10584,8 @@ spec = withApp $ do
           assertEq "user table empty" 0 $ length users
 
 {-# START_FILE test/Handler/ProfileSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.ProfileSpec (spec) where
 
 import TestImport
@@ -10631,17 +10617,16 @@ spec = withApp $ do
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 {-# START_FILE test/TestImport.hs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module TestImport
     ( module TestImport
     , module X
     ) where
 
 import Application           (makeFoundation, makeLogWare)
-#if MIN_VERSION_classy_prelude(1, 0, 0)
 import ClassyPrelude         as X hiding (delete, deleteBy, Handler)
-#else
-import ClassyPrelude         as X hiding (delete, deleteBy)
-#endif
 import Database.Persist      as X hiding (get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
 import Foundation            as X
@@ -10651,6 +10636,7 @@ import Text.Shakespeare.Text (st)
 import Yesod.Default.Config2 (useEnv, loadYamlSettings)
 import Yesod.Auth            as X
 import Yesod.Test            as X
+import Yesod.Core.Unsafe     (fakeHandlerGetLogger)
 
 runDB :: SqlPersistM a -> YesodExample App a
 runDB query = do
@@ -10659,6 +10645,11 @@ runDB query = do
 
 runDBWithApp :: App -> SqlPersistM a -> IO a
 runDBWithApp app query = runSqlPersistMPool query (appConnPool app)
+
+runHandler :: Handler a -> YesodExample App a
+runHandler handler = do
+    app <- getTestYesod
+    fakeHandlerGetLogger appLogger app handler
 
 
 withApp :: SpecWith (TestApp App) -> Spec

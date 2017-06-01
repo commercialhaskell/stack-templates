@@ -23,10 +23,424 @@ cabal.sandbox.config
 .DS_Store
 *.swp
 *.keter
+*~
+\#*
+{{name}}.cabal
 
-{-# START_FILE Application.hs #-}
+{-# START_FILE app/DevelMain.hs #-}
+-- | Running your app inside GHCi.
+--
+-- To start up GHCi for usage with Yesod, first make sure you are in dev mode:
+--
+-- > cabal configure -fdev
+--
+-- Note that @yesod devel@ automatically sets the dev flag.
+-- Now launch the repl:
+--
+-- > cabal repl --ghc-options="-O0 -fobject-code"
+--
+-- To start your app, run:
+--
+-- > :l DevelMain
+-- > DevelMain.update
+--
+-- You can also call @DevelMain.shutdown@ to stop the app
+--
+-- You will need to add the foreign-store package to your .cabal file.
+-- It is very light-weight.
+--
+-- If you don't use cabal repl, you will need
+-- to run the following in GHCi or to add it to
+-- your .ghci file.
+--
+-- :set -DDEVELOPMENT
+--
+-- There is more information about this approach,
+-- on the wiki: https://github.com/yesodweb/yesod/wiki/ghci
+
+module DevelMain where
+
+import Prelude
+import Application (getApplicationRepl, shutdownApp)
+
+import Control.Exception (finally)
+import Control.Monad ((>=>))
+import Control.Concurrent
+import Data.IORef
+import Foreign.Store
+import Network.Wai.Handler.Warp
+import GHC.Word
+
+-- | Start or restart the server.
+-- newStore is from foreign-store.
+-- A Store holds onto some data across ghci reloads
+update :: IO ()
+update = do
+    mtidStore <- lookupStore tidStoreNum
+    case mtidStore of
+      -- no server running
+      Nothing -> do
+          done <- storeAction doneStore newEmptyMVar
+          tid <- start done
+          _ <- storeAction (Store tidStoreNum) (newIORef tid)
+          return ()
+      -- server is already running
+      Just tidStore -> restartAppInNewThread tidStore
+  where
+    doneStore :: Store (MVar ())
+    doneStore = Store 0
+
+    -- shut the server down with killThread and wait for the done signal
+    restartAppInNewThread :: Store (IORef ThreadId) -> IO ()
+    restartAppInNewThread tidStore = modifyStoredIORef tidStore $ \tid -> do
+        killThread tid
+        withStore doneStore takeMVar
+        readStore doneStore >>= start
+
+
+    -- | Start the server in a separate thread.
+    start :: MVar () -- ^ Written to when the thread is killed.
+          -> IO ThreadId
+    start done = do
+        (port, site, app) <- getApplicationRepl
+        forkIO (finally (runSettings (setPort port defaultSettings) app)
+                        -- Note that this implies concurrency
+                        -- between shutdownApp and the next app that is starting.
+                        -- Normally this should be fine
+                        (putMVar done () >> shutdownApp site))
+
+-- | kill the server
+shutdown :: IO ()
+shutdown = do
+    mtidStore <- lookupStore tidStoreNum
+    case mtidStore of
+      -- no server running
+      Nothing -> putStrLn "no Yesod app running"
+      Just tidStore -> do
+          withStore tidStore $ readIORef >=> killThread
+          putStrLn "Yesod app is shutdown"
+
+tidStoreNum :: Word32
+tidStoreNum = 1
+
+modifyStoredIORef :: Store (IORef a) -> (a -> IO a) -> IO ()
+modifyStoredIORef store f = withStore store $ \ref -> do
+    v <- readIORef ref
+    f v >>= writeIORef ref
+
+{-# START_FILE app/devel.hs #-}
+{-# LANGUAGE PackageImports #-}
+import "{{name}}" Application (develMain)
+import Prelude (IO)
+
+main :: IO ()
+main = develMain
+
+{-# START_FILE app/main.hs #-}
+import Prelude     (IO)
+import Application (appMain)
+
+main :: IO ()
+main = appMain
+
+{-# START_FILE BASE64 config/favicon.ico #-}
+AAABAAIAEBAAAAEAIABoBAAAJgAAABAQAgABAAEAsAAAAI4EAAAoAAAAEAAAACAAAAABACAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAApl4sAAAAAAAAAAAAAAAAAUEpGyNpSjaIg2NO2ZBvWfqTc13/
+jW1X9YNhTMZrSTNkUTMfDwAAAAAAAAAAAAAAAAAAAAAAAAAANR0NClk6JmF+W0Txj2xV/41qVP+M
+aVP/jGlS/4xpUv+MaVL/i2dQ/3pVPdNeOiEzQRsBAgAAAAAAAAAAMBgHAlIxG1h5UDb/h15D9n5W
+PPZ4TzXmeVE303hQNtV4UDbVeFA11XdQNdV5UTfbbUUpx1UsEBgAAAAAAAAFADIVAwlULxY/f1M1
+4dOffryecFHMXTIVhAAAAAURAAAOEwAADxQAAA8TAAAPEAAADigEABFNJAkZTSQJCRAHAQdKIARt
+OxUAC1kvE3qQYEDfzJt5wXtOL9pQJAa0UScKjVInCo1SJwqNUSYJjVElCY1RJQmLUSUHslEjBGcu
+EgAuVSQC/00eAGAYAAAPXzAQuLGAXs6ygV/PYTESwkMXAFRGHgI3Rx4BPEceATxHHQE7RBsBMkwf
+AqlUIQHgQhoAaVUhAP9TIQDhSBwAI0EXAD5xQSHbzJp4wJRiQtBRIgKuRxsAb0kdAGpJHQBqSR0A
+e04fAJNJHQClVCEA/0YcAIRVIgD/VSIA7E0fADQyDQAyaToa1MqXdMLJl3bBc0Ii6UscAJFFGgBE
+RRoAQUIZAFlRIADpVSIA/1UiAP9JHwN9WicG/1QhAIMAAAAMVywPoaBtTNi6imnEsIBfya9+Xc1m
+OBm2UycIilgqDYVVKQ2DVigJ4FwqCf5cKgr/Qx8GUGAwEc08EwAPTSgQY4dXN+LPnXy9g1c54XtM
+LevJl3a/k2RE3WY5Gv9mNxn/Zjga/2c5G/9oOhz/Zzka/DQYBRFZLRA1JhAAJHhML9XJlnTCqXxe
+zXFHLPtxRyv/n3BR2MuZd7uFWjzmc0gt/nRKLv90Sy//dUww/21CJcIAAAAATCsURXRONdR+Vjr5
+j2ZL5oJbQfN+Vz3/flg//4NcQfePZkrogVk/8n5YP/6BW0H/gVtD/oBaQf9qQCRIJAgAAFAxHRt4
+VDzVjWpS/4lmT/6LZ1D/jGlS/4xpU/6MaVL/i2hS/otpUv6Na1T+jmtV/o9tV/98Vj2cYzoeBgAA
+AAAGAgAAZ0cyMIVkTtqae2f/mXpm/5l5Zf6Zemb+mXpm/5p6Zv+ae2f+mnxp/5p7Z/+HZE2qdE84
+FAAAAAAAAAAAAAAAAAAAAABrTDgfhWVQnp2Abf+njHv/pot6/6aMev+njHv/qI18/5t+avOHZU9y
+fFc/DgAAAAAAAAAAJhABAAAAAAAAAAAAyqmXADYdCQNoSDQjh2hUbpd6aJ+Zfmurl3pnlYZkTlpw
+TDYTX0IxAbNeMwAAAAAAsoFfAPgfAADwBwAA4AMAAOH/AADwAQAAsPwAAJh4AAAYOAAAkAAAALAA
+AADgAAAAwAEAAMABAADgAwAA8A8AAP4/AAAoAAAAEAAAACAAAAABAAEAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
+
+{-# START_FILE config/keter.yml #-}
+# After you've edited this file, remove the following line to allow
+# `yesod keter` to build your bundle.
+user-edited: false
+
+# A Keter app is composed of 1 or more stanzas. The main stanza will define our
+# web application. See the Keter documentation for more information on
+# available stanzas.
+stanzas:
+
+  # Your Yesod application.
+  - type: webapp
+
+    # Name of your executable. You are unlikely to need to change this.
+    # Note that all file paths are relative to the keter.yml file.
+    #
+    # The path given is for Stack projects. If you're still using cabal, change
+    # to
+    # exec: ../dist/build/{{name}}/{{name}}
+    exec: ../dist/bin/{{name}}
+
+    # Command line options passed to your application.
+    args: []
+
+    hosts:
+      # You can specify one or more hostnames for your application to respond
+      # to. The primary hostname will be used for generating your application
+      # root.
+      - www.{{name}}.com
+
+    # Enable to force Keter to redirect to https
+    # Can be added to any stanza
+    requires-secure: false
+
+  # Static files.
+  - type: static-files
+    hosts:
+      - static.{{name}}.com
+    root: ../static
+
+    # Uncomment to turn on directory listings.
+    # directory-listing: true
+
+  # Redirect plain domain name to www.
+  - type: redirect
+
+    hosts:
+      - {{name}}.com
+    actions:
+      - host: www.{{name}}.com
+        # secure: false
+        # port: 80
+
+    # Uncomment to switch to a non-permanent redirect.
+    # status: 303
+
+# Use the following to automatically copy your bundle upon creation via `yesod
+# keter`. Uses `scp` internally, so you can set it to a remote destination
+# copy-to: user@host:/opt/keter/incoming/
+
+# You can pass arguments to `scp` used above. This example limits bandwidth to
+# 1024 Kbit/s and uses port 2222 instead of the default 22
+# copy-to-args:
+#   - "-l 1024"
+#   - "-P 2222"
+
+# If you would like to have Keter automatically create a PostgreSQL database
+# and set appropriate environment variables for it to be discovered, uncomment
+# the following line.
+# plugins:
+#   postgres: true
+
+{-# START_FILE config/models #-}
+User
+    ident Text sqltype=varchar(255)
+    password Text Maybe sqltype=varchar(255) default=NULL
+    UniqueUser ident
+    deriving Typeable
+Email
+    email Text sqltype=varchar(255)
+    userId UserId Maybe sqltype=varchar(255) default=NULL
+    verkey Text Maybe sqltype=varchar(255) default=NULL
+    UniqueEmail email
+Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived.
+    message Text sqltype=varchar(255)
+    userId UserId Maybe sqltype=varchar(255) default=NULL
+    deriving Eq
+    deriving Show
+
+ -- By default this file is used in Model.hs (which is imported by Foundation.hs)
+
+{-# START_FILE config/robots.txt #-}
+User-agent: *
+
+{-# START_FILE config/routes #-}
+/static StaticR Static appStatic
+/auth   AuthR   Auth   getAuth
+
+/favicon.ico FaviconR GET
+/robots.txt RobotsR GET
+
+/ HomeR GET POST
+
+/comments CommentR POST
+
+/profile ProfileR GET
+
+{-# START_FILE config/settings.yml #-}
+# Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
+# See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
+
+static-dir:     "_env:STATIC_DIR:static"
+host:           "_env:HOST:*4" # any IPv4 host
+port:           "_env:PORT:3000" # NB: The port `yesod devel` uses is distinct from this value. Set the `yesod devel` port from the command line.
+ip-from-header: "_env:IP_FROM_HEADER:false"
+
+# Default behavior: determine the application root from the request headers.
+# Uncomment to set an explicit approot
+#approot:        "_env:APPROOT:http://localhost:3000"
+
+# Optional values with the following production defaults.
+# In development, they default to the inverse.
+#
+# detailed-logging: false
+# should-log-all: false
+# reload-templates: false
+# mutable-static: false
+# skip-combining: false
+# auth-dummy-login : false
+
+# NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
+# See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
+
+database:
+  user:     "_env:MYSQL_USER:{{name}}"
+  password: "_env:MYSQL_PASSWORD:{{name}}"
+  host:     "_env:MYSQL_HOST:localhost"
+  port:     "_env:MYSQL_PORT:5432"
+  # See config/test-settings.yml for an override during tests
+  database: "_env:MYSQL_DATABASE:{{name}}"
+  poolsize: "_env:MYSQL_POOLSIZE:10"
+
+copyright: Insert copyright statement here
+#analytics: UA-YOURCODE
+
+{-# START_FILE config/test-settings.yml #-}
+database:
+  # NOTE: By design, this setting prevents the MYSQL_DATABASE environment variable
+  # from affecting test runs, so that we don't accidentally affect the
+  # production database during testing. If you're not concerned about that and
+  # would like to have environment variable overrides, you could instead use
+  # something like:
+  #
+  #   database: "_env:MYSQL_DATABASE:{{name}}_test"
+  database: {{name}}_test
+
+auth-dummy-login: true
+
+{-# START_FILE package.yaml #-}
+name:    {{name}}
+version: "0.0.0"
+
+dependencies:
+
+# Due to a bug in GHC 8.0.1, we block its usage
+# See: https://ghc.haskell.org/trac/ghc/ticket/12130
+- base >=4.8.2.0 && <4.9 || >=4.9.1.0 && <5
+
+# version 1.0 had a bug in reexporting Handler, causing trouble
+- classy-prelude-yesod >=0.10.2 && <1.0 || >=1.1
+
+- yesod >=1.4.3 && <1.5
+- yesod-core >=1.4.30 && <1.5
+- yesod-auth >=1.4.0 && <1.5
+- yesod-static >=1.4.0.3 && <1.6
+- yesod-form >=1.4.0 && <1.5
+- classy-prelude >=0.10.2
+- classy-prelude-conduit >=0.10.2
+- bytestring >=0.9 && <0.11
+- text >=0.11 && <2.0
+- persistent >=2.0 && <2.8
+- persistent-mysql >=2.1.2 && <2.8
+- mysql >= 0.1.4
+- persistent-template >=2.0 && <2.8
+- template-haskell
+- shakespeare >=2.0 && <2.1
+- hjsmin >=0.1 && <0.3
+- monad-control >=0.3 && <1.1
+- wai-extra >=3.0 && <3.1
+- yaml >=0.8 && <0.9
+- http-conduit >=2.1 && <2.3
+- directory >=1.1 && <1.4
+- warp >=3.0 && <3.3
+- data-default
+- aeson >=0.6 && <1.3
+- conduit >=1.0 && <2.0
+- monad-logger >=0.3 && <0.4
+- fast-logger >=2.2 && <2.5
+- wai-logger >=2.2 && <2.4
+- file-embed
+- safe
+- unordered-containers
+- containers
+- vector
+- time
+- case-insensitive
+- wai
+
+# The library contains all of our application code. The executable
+# defined below is just a thin wrapper.
+library:
+  source-dirs: src
+  when:
+  - condition: (flag(dev)) || (flag(library-only))
+    then:
+      ghc-options:
+      - -Wall
+      - -fwarn-tabs
+      - -O0
+      cpp-options: -DDEVELOPMENT
+    else:
+      ghc-options:
+      - -Wall
+      - -fwarn-tabs
+      - -O2
+
+# Runnable executable for our application
+executables:
+  {{name}}:
+    main: main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+    when:
+    - condition: flag(library-only)
+      buildable: false
+
+# Test suite
+tests:
+  test:
+    main: Spec.hs
+    source-dirs: test
+    ghc-options: -Wall
+    dependencies:
+    - {{name}}
+    - hspec >=2.0.0
+    - yesod-test
+
+# Define flags used by "yesod devel" to make compilation faster
+flags:
+  library-only:
+    description: Build for use with "yesod devel"
+    manual: false
+    default: false
+  dev:
+    description: Turn on development settings, like auto-reload templates.
+    manual: false
+    default: false
+
+{-# START_FILE src/Application.hs #-}
 {-# LANGUAGE CPP                  #-}
 {-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application
     ( getApplicationDev
@@ -92,7 +506,7 @@ makeFoundation appSettings = do
         (if appMutableStatic appSettings then staticDevel else static)
         (appStaticDir appSettings)
 
-    -- See http://www.yesodweb.com/blog/2017/11/use-mysql-safely-in-yesod
+    -- See http://www.yesodweb.com/blog/2016/11/use-mysql-safely-in-yesod
     MySQL.initLibrary
 
     -- We need a log function to create a connection pool. We need a connection
@@ -147,7 +561,7 @@ forkOSWithUnmask io = forkOS (io unsafeUnmask)
 
 -- | Warp settings for the given foundation value.
 -- Use bound threads for thread-safe use of MySQL, and initialise and finalise
--- them: see http://www.yesodweb.com/blog/2017/11/use-mysql-safely-in-yesod
+-- them: see http://www.yesodweb.com/blog/2016/11/use-mysql-safely-in-yesod
 warpSettings :: App -> Settings
 warpSettings foundation =
       setPort (appPort $ appSettings foundation)
@@ -229,7 +643,12 @@ handler h = getAppSettings >>= makeFoundation >>= flip unsafeHandler h
 db :: ReaderT SqlBackend (HandlerT App IO) a -> IO a
 db = handler . runDB
 
-{-# START_FILE Foundation.hs #-}
+{-# START_FILE src/Foundation.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module Foundation where
 
 import Import.NoFoundation
@@ -481,7 +900,7 @@ unsafeHandler = Unsafe.fakeHandlerGetLogger appLogger
 -- https://github.com/yesodweb/yesod/wiki/Serve-static-files-from-a-separate-domain
 -- https://github.com/yesodweb/yesod/wiki/i18n-messages-in-the-scaffolding
 
-{-# START_FILE Handler/Comment.hs #-}
+{-# START_FILE src/Handler/Comment.hs #-}
 module Handler.Comment where
 
 import Import
@@ -499,7 +918,12 @@ postCommentR = do
     insertedComment <- runDB $ insertEntity comment'
     returnJson insertedComment
 
-{-# START_FILE Handler/Common.hs #-}
+{-# START_FILE src/Handler/Common.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 -- | Common handler functions.
 module Handler.Common where
 
@@ -518,7 +942,12 @@ getRobotsR :: Handler TypedContent
 getRobotsR = return $ TypedContent typePlain
                     $ toContent $(embedFile "config/robots.txt")
 
-{-# START_FILE Handler/Home.hs #-}
+{-# START_FILE src/Handler/Home.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module Handler.Home where
 
 import Import
@@ -582,7 +1011,12 @@ sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 commentIds :: (Text, Text, Text)
 commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
 
-{-# START_FILE Handler/Profile.hs #-}
+{-# START_FILE src/Handler/Profile.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 module Handler.Profile where
 
 import Import
@@ -594,7 +1028,7 @@ getProfileR = do
         setTitle . toHtml $ userIdent user <> "'s User page"
         $(widgetFile "profile")
 
-{-# START_FILE Import.hs #-}
+{-# START_FILE src/Import.hs #-}
 module Import
     ( module Import
     ) where
@@ -602,7 +1036,7 @@ module Import
 import Foundation            as Import
 import Import.NoFoundation   as Import
 
-{-# START_FILE Import/NoFoundation.hs #-}
+{-# START_FILE src/Import/NoFoundation.hs #-}
 {-# LANGUAGE CPP #-}
 module Import.NoFoundation
     ( module Import
@@ -616,9 +1050,16 @@ import Yesod.Auth            as Import
 import Yesod.Core.Types      as Import (loggerSet)
 import Yesod.Default.Config2 as Import
 
-{-# START_FILE Model.hs #-}
-{-# LANGUAGE FlexibleInstances #-}
-
+{-# START_FILE src/Model.hs #-}
+{-# LANGUAGE EmptyDataDecls             #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE NoImplicitPrelude          #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
 module Model where
 
 import ClassyPrelude.Yesod
@@ -631,180 +1072,12 @@ import Database.Persist.Quasi
 share [mkPersist sqlSettings, mkMigrate "migrateAll"]
     $(persistFileWith lowerCaseSettings "config/models")
 
-{-# START_FILE {{name}}.cabal #-}
-name:              {{name}}
-version:           0.0.0
-cabal-version:     >= 1.8
-build-type:        Simple
-
-Flag dev
-    Description:   Turn on development settings, like auto-reload templates.
-    Default:       False
-
-Flag library-only
-    Description:   Build for use with "yesod devel"
-    Default:       False
-
-library
-    hs-source-dirs: ., app
-    exposed-modules: Application
-                     Foundation
-                     Import
-                     Import.NoFoundation
-                     Model
-                     Settings
-                     Settings.StaticFiles
-                     Handler.Common
-                     Handler.Home
-                     Handler.Comment
-                     Handler.Profile
-
-    if flag(dev) || flag(library-only)
-        cpp-options:   -DDEVELOPMENT
-        ghc-options:   -Wall -fwarn-tabs -O0
-    else
-        ghc-options:   -Wall -fwarn-tabs -O2
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-    build-depends:
-                   -- Due to a bug in GHC 8.0.1, we block its usage
-                   -- See: https://ghc.haskell.org/trac/ghc/ticket/12130
-                   base                          >= 4.8.2.0    && < 4.9
-                                              || >= 4.9.1.0    && < 5
-
-                 , yesod                         >= 1.4.3      && < 1.5
-                 , yesod-core                    >= 1.4.30     && < 1.5
-                 , yesod-auth                    >= 1.4.0      && < 1.5
-                 , yesod-static                  >= 1.4.0.3    && < 1.6
-                 , yesod-form                    >= 1.4.0      && < 1.5
-                 , classy-prelude                >= 0.10.2
-                 , classy-prelude-conduit        >= 0.10.2
-                 -- version 1.0 had a bug in reexporting Handler, causing trouble
-                 , classy-prelude-yesod          >= 0.10.2     && < 1.0
-                                              || >= 1.1
-                 , bytestring                    >= 0.9        && < 0.11
-                 , text                          >= 0.11       && < 2.0
-                 , persistent                    >= 2.0        && < 2.7
-                 , persistent-mysql              >= 2.1.2      && < 2.7
-                 , mysql                         >= 0.1.4
-                 , persistent-template           >= 2.0        && < 2.7
-                 , template-haskell
-                 , shakespeare                   >= 2.0        && < 2.1
-                 , hjsmin                        >= 0.1        && < 0.3
-                 , monad-control                 >= 0.3        && < 1.1
-                 , wai-extra                     >= 3.0        && < 3.1
-                 , yaml                          >= 0.8        && < 0.9
-                 , http-conduit                  >= 2.1        && < 2.3
-                 , directory                     >= 1.1        && < 1.4
-                 , warp                          >= 3.0        && < 3.3
-                 , data-default
-                 , aeson                         >= 0.6        && < 1.1
-                 , conduit                       >= 1.0        && < 2.0
-                 , monad-logger                  >= 0.3        && < 0.4
-                 , fast-logger                   >= 2.2        && < 2.5
-                 , wai-logger                    >= 2.2        && < 2.4
-                 , file-embed
-                 , safe
-                 , unordered-containers
-                 , containers
-                 , vector
-                 , time
-                 , case-insensitive
-                 , wai
-
-executable         {{name}}
-    if flag(library-only)
-        Buildable: False
-
-    main-is:           main.hs
-    hs-source-dirs:    app
-    build-depends:     base, {{name}}
-
-    ghc-options:       -threaded -rtsopts -with-rtsopts=-N
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-test-suite test
-    type:              exitcode-stdio-1.0
-    main-is:           Spec.hs
-    other-modules:     Handler.CommentSpec
-                       Handler.CommonSpec
-                       Handler.HomeSpec
-                       Handler.ProfileSpec
-                       TestImport
-    hs-source-dirs:    test
-    ghc-options:       -Wall
-
-    extensions: TemplateHaskell
-                QuasiQuotes
-                OverloadedStrings
-                NoImplicitPrelude
-                MultiParamTypeClasses
-                TypeFamilies
-                GADTs
-                GeneralizedNewtypeDeriving
-                FlexibleContexts
-                FlexibleInstances
-                EmptyDataDecls
-                NoMonomorphismRestriction
-                DeriveDataTypeable
-                ViewPatterns
-                TupleSections
-                RecordWildCards
-                CPP
-
-    build-depends: base
-                 , {{name}}
-                 , yesod-auth
-                 , yesod-test >= 1.5.2 && < 1.6
-                 , yesod-core
-                 , yesod
-                 , persistent
-                 , persistent-mysql
-                 , resourcet
-                 , monad-logger
-                 , shakespeare
-                 , transformers
-                 , hspec >= 2.0.0
-                 , classy-prelude
-                 , classy-prelude-yesod
-                 , aeson
-
-{-# START_FILE Settings.hs #-}
-{-# Language CPP #-}
+{-# START_FILE src/Settings.hs #-}
+{-# LANGUAGE CPP               #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE TemplateHaskell   #-}
 -- | Settings are centralized, as much as possible, into this file. This
 -- includes database connection settings, static file locations, etc.
 -- In addition, you can configure a number of different aspects of Yesod
@@ -869,7 +1142,7 @@ data AppSettings = AppSettings
 instance FromJSON AppSettings where
     parseJSON = withObject "AppSettings" $ \o -> do
         let defaultDev =
-#if DEVELOPMENT
+#ifdef DEVELOPMENT
                 True
 #else
                 False
@@ -958,7 +1231,10 @@ combineScripts = combineScripts'
     (appSkipCombining compileTimeAppSettings)
     combineSettings
 
-{-# START_FILE Settings/StaticFiles.hs #-}
+{-# START_FILE src/Settings/StaticFiles.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module Settings.StaticFiles where
 
 import Settings     (appStaticDir, compileTimeAppSettings)
@@ -978,318 +1254,18 @@ import Yesod.Static (staticFiles)
 --     StaticFile ["js", "script.js"] []
 staticFiles (appStaticDir compileTimeAppSettings)
 
-{-# START_FILE app/DevelMain.hs #-}
--- | Running your app inside GHCi.
---
--- To start up GHCi for usage with Yesod, first make sure you are in dev mode:
---
--- > cabal configure -fdev
---
--- Note that @yesod devel@ automatically sets the dev flag.
--- Now launch the repl:
---
--- > cabal repl --ghc-options="-O0 -fobject-code"
---
--- To start your app, run:
---
--- > :l DevelMain
--- > DevelMain.update
---
--- You can also call @DevelMain.shutdown@ to stop the app
---
--- You will need to add the foreign-store package to your .cabal file.
--- It is very light-weight.
---
--- If you don't use cabal repl, you will need
--- to run the following in GHCi or to add it to
--- your .ghci file.
---
--- :set -DDEVELOPMENT
---
--- There is more information about this approach,
--- on the wiki: https://github.com/yesodweb/yesod/wiki/ghci
-
-module DevelMain where
-
-import Prelude
-import Application (getApplicationRepl, shutdownApp)
-
-import Control.Exception (finally)
-import Control.Monad ((>=>))
-import Control.Concurrent
-import Data.IORef
-import Foreign.Store
-import Network.Wai.Handler.Warp
-import GHC.Word
-
--- | Start or restart the server.
--- newStore is from foreign-store.
--- A Store holds onto some data across ghci reloads
-update :: IO ()
-update = do
-    mtidStore <- lookupStore tidStoreNum
-    case mtidStore of
-      -- no server running
-      Nothing -> do
-          done <- storeAction doneStore newEmptyMVar
-          tid <- start done
-          _ <- storeAction (Store tidStoreNum) (newIORef tid)
-          return ()
-      -- server is already running
-      Just tidStore -> restartAppInNewThread tidStore
-  where
-    doneStore :: Store (MVar ())
-    doneStore = Store 0
-
-    -- shut the server down with killThread and wait for the done signal
-    restartAppInNewThread :: Store (IORef ThreadId) -> IO ()
-    restartAppInNewThread tidStore = modifyStoredIORef tidStore $ \tid -> do
-        killThread tid
-        withStore doneStore takeMVar
-        readStore doneStore >>= start
-
-
-    -- | Start the server in a separate thread.
-    start :: MVar () -- ^ Written to when the thread is killed.
-          -> IO ThreadId
-    start done = do
-        (port, site, app) <- getApplicationRepl
-        forkIO (finally (runSettings (setPort port defaultSettings) app)
-                        -- Note that this implies concurrency
-                        -- between shutdownApp and the next app that is starting.
-                        -- Normally this should be fine
-                        (putMVar done () >> shutdownApp site))
-
--- | kill the server
-shutdown :: IO ()
-shutdown = do
-    mtidStore <- lookupStore tidStoreNum
-    case mtidStore of
-      -- no server running
-      Nothing -> putStrLn "no Yesod app running"
-      Just tidStore -> do
-          withStore tidStore $ readIORef >=> killThread
-          putStrLn "Yesod app is shutdown"
-
-tidStoreNum :: Word32
-tidStoreNum = 1
-
-modifyStoredIORef :: Store (IORef a) -> (a -> IO a) -> IO ()
-modifyStoredIORef store f = withStore store $ \ref -> do
-    v <- readIORef ref
-    f v >>= writeIORef ref
-
-{-# START_FILE app/devel.hs #-}
-{-# LANGUAGE PackageImports #-}
-import "{{name}}" Application (develMain)
-import Prelude (IO)
-
-main :: IO ()
-main = develMain
-
-{-# START_FILE app/main.hs #-}
-import Prelude     (IO)
-import Application (appMain)
-
-main :: IO ()
-main = appMain
-
-{-# START_FILE BASE64 config/favicon.ico #-}
-AAABAAIAEBAAAAEAIABoBAAAJgAAABAQAgABAAEAsAAAAI4EAAAoAAAAEAAAACAAAAABACAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAApl4sAAAAAAAAAAAAAAAAAUEpGyNpSjaIg2NO2ZBvWfqTc13/
-jW1X9YNhTMZrSTNkUTMfDwAAAAAAAAAAAAAAAAAAAAAAAAAANR0NClk6JmF+W0Txj2xV/41qVP+M
-aVP/jGlS/4xpUv+MaVL/i2dQ/3pVPdNeOiEzQRsBAgAAAAAAAAAAMBgHAlIxG1h5UDb/h15D9n5W
-PPZ4TzXmeVE303hQNtV4UDbVeFA11XdQNdV5UTfbbUUpx1UsEBgAAAAAAAAFADIVAwlULxY/f1M1
-4dOffryecFHMXTIVhAAAAAURAAAOEwAADxQAAA8TAAAPEAAADigEABFNJAkZTSQJCRAHAQdKIARt
-OxUAC1kvE3qQYEDfzJt5wXtOL9pQJAa0UScKjVInCo1SJwqNUSYJjVElCY1RJQmLUSUHslEjBGcu
-EgAuVSQC/00eAGAYAAAPXzAQuLGAXs6ygV/PYTESwkMXAFRGHgI3Rx4BPEceATxHHQE7RBsBMkwf
-AqlUIQHgQhoAaVUhAP9TIQDhSBwAI0EXAD5xQSHbzJp4wJRiQtBRIgKuRxsAb0kdAGpJHQBqSR0A
-e04fAJNJHQClVCEA/0YcAIRVIgD/VSIA7E0fADQyDQAyaToa1MqXdMLJl3bBc0Ii6UscAJFFGgBE
-RRoAQUIZAFlRIADpVSIA/1UiAP9JHwN9WicG/1QhAIMAAAAMVywPoaBtTNi6imnEsIBfya9+Xc1m
-OBm2UycIilgqDYVVKQ2DVigJ4FwqCf5cKgr/Qx8GUGAwEc08EwAPTSgQY4dXN+LPnXy9g1c54XtM
-LevJl3a/k2RE3WY5Gv9mNxn/Zjga/2c5G/9oOhz/Zzka/DQYBRFZLRA1JhAAJHhML9XJlnTCqXxe
-zXFHLPtxRyv/n3BR2MuZd7uFWjzmc0gt/nRKLv90Sy//dUww/21CJcIAAAAATCsURXRONdR+Vjr5
-j2ZL5oJbQfN+Vz3/flg//4NcQfePZkrogVk/8n5YP/6BW0H/gVtD/oBaQf9qQCRIJAgAAFAxHRt4
-VDzVjWpS/4lmT/6LZ1D/jGlS/4xpU/6MaVL/i2hS/otpUv6Na1T+jmtV/o9tV/98Vj2cYzoeBgAA
-AAAGAgAAZ0cyMIVkTtqae2f/mXpm/5l5Zf6Zemb+mXpm/5p6Zv+ae2f+mnxp/5p7Z/+HZE2qdE84
-FAAAAAAAAAAAAAAAAAAAAABrTDgfhWVQnp2Abf+njHv/pot6/6aMev+njHv/qI18/5t+avOHZU9y
-fFc/DgAAAAAAAAAAJhABAAAAAAAAAAAAyqmXADYdCQNoSDQjh2hUbpd6aJ+Zfmurl3pnlYZkTlpw
-TDYTX0IxAbNeMwAAAAAAsoFfAPgfAADwBwAA4AMAAOH/AADwAQAAsPwAAJh4AAAYOAAAkAAAALAA
-AADgAAAAwAEAAMABAADgAwAA8A8AAP4/AAAoAAAAEAAAACAAAAABAAEAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==
-
-{-# START_FILE config/keter.yml #-}
-# After you've edited this file, remove the following line to allow
-# `yesod keter` to build your bundle.
-user-edited: false
-
-# A Keter app is composed of 1 or more stanzas. The main stanza will define our
-# web application. See the Keter documentation for more information on
-# available stanzas.
-stanzas:
-
-  # Your Yesod application.
-  - type: webapp
-
-    # Name of your executable. You are unlikely to need to change this.
-    # Note that all file paths are relative to the keter.yml file.
-    #
-    # The path given is for Stack projects. If you're still using cabal, change
-    # to
-    # exec: ../dist/build/{{name}}/{{name}}
-    exec: ../dist/bin/{{name}}
-
-    # Command line options passed to your application.
-    args: []
-
-    hosts:
-      # You can specify one or more hostnames for your application to respond
-      # to. The primary hostname will be used for generating your application
-      # root.
-      - www.{{name}}.com
-
-    # Enable to force Keter to redirect to https
-    # Can be added to any stanza
-    requires-secure: false
-
-  # Static files.
-  - type: static-files
-    hosts:
-      - static.{{name}}.com
-    root: ../static
-
-    # Uncomment to turn on directory listings.
-    # directory-listing: true
-
-  # Redirect plain domain name to www.
-  - type: redirect
-
-    hosts:
-      - {{name}}.com
-    actions:
-      - host: www.{{name}}.com
-        # secure: false
-        # port: 80
-
-    # Uncomment to switch to a non-permanent redirect.
-    # status: 303
-
-# Use the following to automatically copy your bundle upon creation via `yesod
-# keter`. Uses `scp` internally, so you can set it to a remote destination
-# copy-to: user@host:/opt/keter/incoming/
-
-# You can pass arguments to `scp` used above. This example limits bandwidth to
-# 1024 Kbit/s and uses port 2222 instead of the default 22
-# copy-to-args:
-#   - "-l 1024"
-#   - "-P 2222"
-
-# If you would like to have Keter automatically create a PostgreSQL database
-# and set appropriate environment variables for it to be discovered, uncomment
-# the following line.
-# plugins:
-#   postgres: true
-
-{-# START_FILE config/models #-}
-User
-    ident Text
-    password Text Maybe
-    UniqueUser ident
-    deriving Typeable
-Email
-    email Text
-    userId UserId Maybe
-    verkey Text Maybe
-    UniqueEmail email
-Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived.
-    message Text
-    userId UserId Maybe
-    deriving Eq
-    deriving Show
-
- -- By default this file is used in Model.hs (which is imported by Foundation.hs)
-
-{-# START_FILE config/robots.txt #-}
-User-agent: *
-
-{-# START_FILE config/routes #-}
-/static StaticR Static appStatic
-/auth   AuthR   Auth   getAuth
-
-/favicon.ico FaviconR GET
-/robots.txt RobotsR GET
-
-/ HomeR GET POST
-
-/comments CommentR POST
-
-/profile ProfileR GET
-
-{-# START_FILE config/settings.yml #-}
-# Values formatted like "_env:ENV_VAR_NAME:default_value" can be overridden by the specified environment variable.
-# See https://github.com/yesodweb/yesod/wiki/Configuration#overriding-configuration-values-with-environment-variables
-
-static-dir:     "_env:STATIC_DIR:static"
-host:           "_env:HOST:*4" # any IPv4 host
-port:           "_env:PORT:3000" # NB: The port `yesod devel` uses is distinct from this value. Set the `yesod devel` port from the command line.
-ip-from-header: "_env:IP_FROM_HEADER:false"
-
-# Default behavior: determine the application root from the request headers.
-# Uncomment to set an explicit approot
-#approot:        "_env:APPROOT:http://localhost:3000"
-
-# Optional values with the following production defaults.
-# In development, they default to the inverse.
-#
-# detailed-logging: false
-# should-log-all: false
-# reload-templates: false
-# mutable-static: false
-# skip-combining: false
-# auth-dummy-login : false
-
-# NB: If you need a numeric value (e.g. 123) to parse as a String, wrap it in single quotes (e.g. "_env:PGPASS:'123'")
-# See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
-
-database:
-  user:     "_env:MYSQL_USER:{{name}}"
-  password: "_env:MYSQL_PASSWORD:{{name}}"
-  host:     "_env:MYSQL_HOST:localhost"
-  port:     "_env:MYSQL_PORT:5432"
-  # See config/test-settings.yml for an override during tests
-  database: "_env:MYSQL_DATABASE:{{name}}"
-  poolsize: "_env:MYSQL_POOLSIZE:10"
-
-copyright: Insert copyright statement here
-#analytics: UA-YOURCODE
-
-{-# START_FILE config/test-settings.yml #-}
-database:
-  # NOTE: By design, this setting prevents the MYSQL_DATABASE environment variable
-  # from affecting test runs, so that we don't accidentally affect the
-  # production database during testing. If you're not concerned about that and
-  # would like to have environment variable overrides, you could instead use
-  # something like:
-  #
-  #   database: "_env:MYSQL_DATABASE:{{name}}_test"
-  database: {{name}}_test
-
-auth-dummy-login: true
-
 {-# START_FILE static/css/bootstrap.css #-}
 @import url("https://fonts.googleapis.com/css?family=Lato:400,700,400italic");
 /*!
  * bootswatch v3.3.7
  * Homepage: http://bootswatch.com
- * Copyright 2012-2017 Thomas Park
+ * Copyright 2012-2016 Thomas Park
  * Licensed under MIT
  * Based on Bootstrap
 */
 /*!
  * Bootstrap v3.3.7 (http://getbootstrap.com)
- * Copyright 2011-2017 Twitter, Inc.
+ * Copyright 2011-2016 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
  */
 /*! normalize.css v3.0.3 | MIT License | github.com/necolas/normalize.css */
@@ -8890,7 +8866,7 @@ Rj3IzE8YKgGEh8OmOkN4KuO6GYyNnRhoWNSgmY9+VfMfhBm7xIwZPp7ggg==
 <glyph unicode="&#xe199;" d="M100 200h400v-155l-75 -45h350l-75 45v155h400l-270 300h170l-270 300h170l-300 333l-300 -333h170l-270 -300h170z" />
 <glyph unicode="&#xe200;" d="M121 700q0 -53 28.5 -97t75.5 -65q-4 -16 -4 -38q0 -74 52.5 -126.5t126.5 -52.5q56 0 100 30v-306l-75 -45h350l-75 45v306q46 -30 100 -30q74 0 126.5 52.5t52.5 126.5q0 24 -9 55q50 32 79.5 83t29.5 112q0 90 -61.5 155.5t-150.5 71.5q-26 89 -99.5 145.5 t-167.5 56.5q-116 0 -197.5 -81.5t-81.5 -197.5q0 -4 1 -11.5t1 -11.5q-14 2 -23 2q-74 0 -126.5 -52.5t-52.5 -126.5z" />
 </font>
-</defs></svg>
+</defs></svg> 
 {-# START_FILE BASE64 static/fonts/glyphicons-halflings-regular.ttf #-}
 AAEAAAARAQAABAAQRkZUTWpVwvAAAAEcAAAAHEdERUYBCAAEAAABOAAAACBPUy8yZ6dLhAAAAVgA
 AABgY21hcErwCZoAAAG4AAACcmN2dCAAKAOHAAAELAAAAAhmcGdtU7QvpwAABDQAAAJlZ2FzcAAA
@@ -10422,6 +10398,8 @@ li {
       Your data is protected with us <strong><span class="username">#{userIdent user}</span></strong>!
 
 {-# START_FILE test/Handler/CommentSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.CommentSpec (spec) where
 
 import TestImport
@@ -10484,6 +10462,8 @@ spec = withApp $ do
             statusIs 200
 
 {-# START_FILE test/Handler/HomeSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.HomeSpec (spec) where
 
 import TestImport
@@ -10519,6 +10499,8 @@ spec = withApp $ do
           assertEq "user table empty" 0 $ length users
 
 {-# START_FILE test/Handler/ProfileSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Handler.ProfileSpec (spec) where
 
 import TestImport
@@ -10550,17 +10532,16 @@ spec = withApp $ do
 {-# OPTIONS_GHC -F -pgmF hspec-discover #-}
 
 {-# START_FILE test/TestImport.hs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
 module TestImport
     ( module TestImport
     , module X
     ) where
 
 import Application           (makeFoundation, makeLogWare)
-#if MIN_VERSION_classy_prelude(1, 0, 0)
 import ClassyPrelude         as X hiding (delete, deleteBy, Handler)
-#else
-import ClassyPrelude         as X hiding (delete, deleteBy)
-#endif
 import Database.Persist      as X hiding (get)
 import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
 import Foundation            as X
@@ -10569,6 +10550,7 @@ import Test.Hspec            as X
 import Yesod.Default.Config2 (useEnv, loadYamlSettings)
 import Yesod.Auth            as X
 import Yesod.Test            as X
+import Yesod.Core.Unsafe     (fakeHandlerGetLogger)
 
 runDB :: SqlPersistM a -> YesodExample App a
 runDB query = do
@@ -10577,6 +10559,11 @@ runDB query = do
 
 runDBWithApp :: App -> SqlPersistM a -> IO a
 runDBWithApp app query = runSqlPersistMPool query (appConnPool app)
+
+runHandler :: Handler a -> YesodExample App a
+runHandler handler = do
+    app <- getTestYesod
+    fakeHandlerGetLogger appLogger app handler
 
 withApp :: SpecWith (TestApp App) -> Spec
 withApp = before $ do
