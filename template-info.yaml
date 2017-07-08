@@ -13,6 +13,9 @@ ghcjs:
 ghcjs-old-base:
   description:
 
+gitlab:
+  description: a template for Gitlab
+
 hakyll-template:
   description: a static website compiler library
 
