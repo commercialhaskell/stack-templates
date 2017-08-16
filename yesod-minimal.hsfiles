@@ -130,11 +130,3 @@ getHomeR = defaultLayout $ do
             <a href=@{AddR 5 7}?_accept=application/json>JSON addition
     |]
 
-{-# START_FILE templates/default-message-widget.hamlet #-}
-<div .container>
-  <div .row>
-    <div .col-md-2>
-    <div .col-md-8>
-      <h1>#{title}
-      ^{body}
-

@@ -346,7 +346,7 @@ dependencies:
 - bytestring >=0.9 && <0.11
 - text >=0.11 && <2.0
 - persistent >=2.0 && <2.8
-- persistent-sqlite >=2.1.1 && <2.8
+- persistent-sqlite >=2.6.2 && <2.8
 - persistent-template >=2.0 && <2.8
 - template-haskell
 - shakespeare >=2.0 && <2.1
@@ -415,6 +415,7 @@ tests:
     - {{name}}
     - hspec >=2.0.0
     - yesod-test
+    - microlens
 
 # Define flags used by "yesod devel" to make compilation faster
 flags:
@@ -623,6 +624,8 @@ db = handler . runDB
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
+
 module Foundation where
 
 import Import.NoFoundation
@@ -795,10 +798,6 @@ instance Yesod App where
             || level == LevelError
 
     makeLogger = return . appLogger
-
-    -- Provide proper Bootstrap styling for default displays, like
-    -- error pages
-    defaultMessageWidget title body = $(widgetFile "default-message-widget")
 
 -- Define breadcrumbs.
 instance YesodBreadcrumbs App where
@@ -9994,8 +9993,11 @@ $newline never
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.js">
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.0.3/js.cookie.min.js">
 
+    \<!-- Bootstrap-3.3.7 compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous">
+
     <script>
-      /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token the request cookies. */
+      /* The `defaultCsrfMiddleware` Middleware added in Foundation.hs adds a CSRF token to the request cookies. */
       /* AJAX requests should add that token to a header to be validated by the server. */
       /* See the CSRF documentation in the Yesod.Core.Handler module of the yesod-core package for details. */
       var csrfHeaderName = "#{TE.decodeUtf8 $ CI.foldedCase defaultCsrfHeaderName}";
@@ -10020,12 +10022,13 @@ $newline never
     $maybe analytics <- appAnalytics $ appSettings master
       <script>
         if(!window.location.href.match(/localhost/)){
-          window._gaq = [['_setAccount','#{analytics}'],['_trackPageview'],['_trackPageLoadTime']];
-          (function() {
-          \  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-          \  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-          \  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-          })();
+            (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+            m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+            })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+            ga('create', '#{analytics}', 'auto');
+            ga('send', 'pageview');
         }
 
 {-# START_FILE templates/default-layout.hamlet #-}
@@ -10065,7 +10068,14 @@ $newline never
     $maybe msg <- mmsg
       <div .alert.alert-info #message>#{msg}
 
-^{widget}
+
+$if (Just HomeR == mcurrentRoute)
+    ^{widget}
+$else
+    <div .container>
+        <div .row>
+            <div .col-md-12>
+                ^{widget}
 
 <!-- Footer -->
 <footer .footer>
@@ -10147,14 +10157,6 @@ $newline never
 #message {
     margin-bottom: 40px;
 }
-
-{-# START_FILE templates/default-message-widget.hamlet #-}
-<div .container>
-  <div .row>
-    <div .col-md-2>
-    <div .col-md-8>
-      <h1>#{title}
-      ^{body}
 
 {-# START_FILE templates/homepage.hamlet #-}
 <div .masthead>
@@ -10516,9 +10518,9 @@ import Yesod.Test            as X
 import Yesod.Core.Unsafe     (fakeHandlerGetLogger)
 
 -- Wiping the database
-import Database.Persist.Sqlite              (sqlDatabase, wrapConnection, createSqlPool)
-import qualified Database.Sqlite as Sqlite
+import Database.Persist.Sqlite              (sqlDatabase, mkSqliteConnectionInfo, fkEnabled, createSqlitePoolFromInfo)
 import Control.Monad.Logger                 (runLoggingT)
+import Lens.Micro                           (set)
 import Settings (appDatabaseConf)
 import Yesod.Core (messageLoggerSource)
 
@@ -10548,32 +10550,26 @@ withApp = before $ do
 -- spec to run in.
 wipeDB :: App -> IO ()
 wipeDB app = do
-    -- In order to wipe the database, we need to temporarily disable foreign key checks.
-    -- Unfortunately, disabling FK checks in a transaction is a noop in SQLite.
-    -- Normal Persistent functions will wrap your SQL in a transaction,
-    -- so we create a raw SQLite connection to disable foreign keys.
-    -- Foreign key checks are per-connection, so this won't effect queries outside this function.
-
-    -- Aside: SQLite by default *does not enable foreign key checks*
-    -- (disabling foreign keys is only necessary for those who specifically enable them).
-    let settings = appSettings app
-    sqliteConn <- rawConnection (sqlDatabase $ appDatabaseConf settings)
-    disableForeignKeys sqliteConn
+    -- In order to wipe the database, we need to use a connection which has
+    -- foreign key checks disabled.  Foreign key checks are enabled or disabled
+    -- per connection, so this won't effect queries outside this function.
+    --
+    -- Aside: foreign key checks are enabled by persistent-sqlite, as of
+    -- version 2.6.2, unless they are explicitly disabled in the
+    -- SqliteConnectionInfo.
 
     let logFunc = messageLoggerSource app (appLogger app)
-    pool <- runLoggingT (createSqlPool (wrapConnection sqliteConn) 1) logFunc
+
+    let dbName = sqlDatabase $ appDatabaseConf $ appSettings app
+        connInfo = set fkEnabled False $ mkSqliteConnectionInfo dbName
+
+    pool <- runLoggingT (createSqlitePoolFromInfo connInfo 1) logFunc
 
     flip runSqlPersistMPool pool $ do
         tables <- getTables
         sqlBackend <- ask
         let queries = map (\t -> "DELETE FROM " ++ (connEscapeName sqlBackend $ DBName t)) tables
         forM_ queries (\q -> rawExecute q [])
-
-rawConnection :: Text -> IO Sqlite.Connection
-rawConnection t = Sqlite.open t
-
-disableForeignKeys :: Sqlite.Connection -> IO ()
-disableForeignKeys conn = Sqlite.prepare conn "PRAGMA foreign_keys = OFF;" >>= void . Sqlite.step
 
 getTables :: MonadIO m => ReaderT SqlBackend m [Text]
 getTables = do
@@ -10590,11 +10586,18 @@ authenticateAs (Entity _ u) = do
         addPostParam "ident" $ userIdent u
         setUrl $ AuthR $ PluginR "dummy" []
 
--- | Create a user.
+-- | Create a user.  The dummy email entry helps to confirm that foreign-key
+-- checking is switched off in wipeDB for those database backends which need it.
 createUser :: Text -> YesodExample App (Entity User)
-createUser ident = do
-    runDB $ insertEntity User
+createUser ident = runDB $ do
+    user <- insertEntity User
         { userIdent = ident
         , userPassword = Nothing
         }
+    _ <- insert Email
+        { emailEmail = ident
+        , emailUserId = Just $ entityKey user
+        , emailVerkey = Nothing
+        }
+    return user
 
