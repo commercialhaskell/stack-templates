@@ -38,6 +38,7 @@ excluded =
   "foundation" : -- foundation package is not available on stackage
   "ghcjs-old-base" : -- ghcjs takes too long to setup
   "ghcjs" : -- ghcjs takes too long to setup
+  "hakyll-template" : -- hakyll takes an excessive amount of time to compile its dependencies
   "quickcheck-test-framework" : -- test-suite fails (probably intentionally)
   "simple-hpack" : -- stack init fails on missing cabal file (fixed in stack on master)
   "tasty-discover" : -- contains a stack file, makes `stack new` choke
