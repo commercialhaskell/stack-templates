@@ -305,12 +305,12 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # See https://github.com/yesodweb/yesod/wiki/Configuration#parsing-numeric-values-as-strings
 
 database:
-  user:     "_env:PGUSER:{{name}}_LOWER"
+  user:     "_env:PGUSER:{{name}}"
   password: "_env:PGPASS:{{name}}"
   host:     "_env:PGHOST:localhost"
   port:     "_env:PGPORT:5432"
   # See config/test-settings.yml for an override during tests
-  database: "_env:PGDATABASE:{{name}}_LOWER"
+  database: "_env:PGDATABASE:{{name}}"
   poolsize: "_env:PGPOOLSIZE:10"
 
 copyright: Insert copyright statement here
@@ -324,8 +324,8 @@ database:
   # would like to have environment variable overrides, you could instead use
   # something like:
   #
-  #   database: "_env:PGDATABASE:{{name}}_LOWER_test"
-  database: {{name}}_LOWER_test
+  #   database: "_env:PGDATABASE:{{name}}_test"
+  database: {{name}}_test
 
 auth-dummy-login: true
 
@@ -693,6 +693,8 @@ db = handler . runDB
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Foundation where
 
@@ -750,6 +752,10 @@ mkYesodData "App" $(parseRoutesFile "config/routes")
 
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
+
+-- | A convenient synonym for database access functions.
+type DB a = forall (m :: * -> *).
+    (MonadIO m, Functor m) => ReaderT SqlBackend m a
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -1043,6 +1049,8 @@ getHomeR = do
     (formWidget, formEnctype) <- generateFormPost sampleForm
     let submission = Nothing :: Maybe FileForm
         handlerName = "getHomeR" :: Text
+    allComments <- runDB $ getAllComments
+
     defaultLayout $ do
         let (commentFormId, commentTextareaId, commentListId) = commentIds
         aDomId <- newIdent
@@ -1057,6 +1065,7 @@ postHomeR = do
         submission = case result of
             FormSuccess res -> Just res
             _ -> Nothing
+    allComments <- runDB $ getAllComments
 
     defaultLayout $ do
         let (commentFormId, commentTextareaId, commentListId) = commentIds
@@ -1082,6 +1091,9 @@ sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 commentIds :: (Text, Text, Text)
 commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
+
+getAllComments :: DB [Entity Comment]
+getAllComments = selectList [] [Asc CommentId]
 
 {-# START_FILE src/Handler/Profile.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -10403,6 +10415,8 @@ $else
                        Your comments will appear here. You can also open the
                        console log to see the raw response from the server.
                    <ul ##{commentListId}>
+                       $forall comment <- allComments
+                           <li>#{commentMessage $ entityVal comment}
 
     <hr>
 
@@ -10629,7 +10643,7 @@ module TestImport
 import Application           (makeFoundation, makeLogWare)
 import ClassyPrelude         as X hiding (delete, deleteBy, Handler)
 import Database.Persist      as X hiding (get)
-import Database.Persist.Sql  (SqlPersistM, SqlBackend, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
+import Database.Persist.Sql  (SqlPersistM, runSqlPersistMPool, rawExecute, rawSql, unSingle, connEscapeName)
 import Foundation            as X
 import Model                 as X
 import Test.Hspec            as X
@@ -10676,7 +10690,7 @@ wipeDB app = runDBWithApp app $ do
         query = "TRUNCATE TABLE " ++ intercalate ", " escapedTables
     rawExecute query []
 
-getTables :: MonadIO m => ReaderT SqlBackend m [Text]
+getTables :: DB [Text]
 getTables = do
     tables <- rawSql [st|
         SELECT table_name

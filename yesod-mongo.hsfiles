@@ -603,6 +603,8 @@ db = handler . runDB
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Foundation where
 
@@ -659,6 +661,10 @@ mkYesodData "App" $(parseRoutesFile "config/routes")
 
 -- | A convenient synonym for creating forms.
 type Form x = Html -> MForm (HandlerT App IO) (FormResult x, Widget)
+
+-- | A convenient synonym for database access functions.
+type DB a = forall (m :: * -> *).
+    (MonadIO m, Functor m) => ReaderT MongoContext m a
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -924,6 +930,8 @@ getHomeR = do
     (formWidget, formEnctype) <- generateFormPost sampleForm
     let submission = Nothing :: Maybe FileForm
         handlerName = "getHomeR" :: Text
+    allComments <- runDB $ getAllComments
+
     defaultLayout $ do
         let (commentFormId, commentTextareaId, commentListId) = commentIds
         aDomId <- newIdent
@@ -937,6 +945,7 @@ postHomeR = do
         submission = case result of
             FormSuccess res -> Just res
             _ -> Nothing
+    allComments <- runDB $ getAllComments
 
     defaultLayout $ do
         let (commentFormId, commentTextareaId, commentListId) = commentIds
@@ -962,6 +971,9 @@ sampleForm = renderBootstrap3 BootstrapBasicForm $ FileForm
 
 commentIds :: (Text, Text, Text)
 commentIds = ("js-commentForm", "js-createCommentTextarea", "js-commentList")
+
+getAllComments :: DB [Entity Comment]
+getAllComments = selectList [] [Asc CommentId]
 
 {-# START_FILE src/Handler/Profile.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
@@ -10264,6 +10276,8 @@ $else
                        Your comments will appear here. You can also open the
                        console log to see the raw response from the server.
                    <ul ##{commentListId}>
+                       $forall comment <- allComments
+                           <li>#{commentMessage $ entityVal comment}
 
     <hr>
 
