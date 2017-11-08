@@ -155,7 +155,7 @@ services:
             - {{name}}
 
 {-# START_FILE Dockerfile #-}
-FROM haskell:8
+FROM haskell:8.0
 
 RUN mkdir -p /app/user
 WORKDIR /app/user
