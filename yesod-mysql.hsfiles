@@ -242,6 +242,9 @@ stanzas:
 #   postgres: true
 
 {-# START_FILE config/models #-}
+-- By default this file is used by `persistFileWith` in Model.hs (which is imported by Foundation.hs)
+-- Syntax for this file here: https://github.com/yesodweb/persistent/blob/master/docs/Persistent-entity-syntax.md
+
 User
     ident Text sqltype=varchar(255)
     password Text Maybe sqltype=varchar(255) default=NULL
@@ -258,12 +261,13 @@ Comment json -- Adding "json" causes ToJSON and FromJSON instances to be derived
     deriving Eq
     deriving Show
 
- -- By default this file is used in Model.hs (which is imported by Foundation.hs)
-
 {-# START_FILE config/robots.txt #-}
 User-agent: *
 
 {-# START_FILE config/routes #-}
+-- By default this file is used by `parseRoutesFile` in Foundation.hs
+-- Syntax for this file here: https://www.yesodweb.com/book/routing-and-handlers
+
 /static StaticR Static appStatic
 /auth   AuthR   Auth   getAuth
 
