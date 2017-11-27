@@ -1,8 +1,7 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
--- synopsis:
--- description:
+synopsis:            Short description of your package
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
@@ -13,6 +12,11 @@ category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
+
+-- To avoid duplicated efforts in documentation and dealing with the
+-- complications of embedding Haddock markup inside cabal files, it is
+-- common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme>
 
 library
   hs-source-dirs:      src

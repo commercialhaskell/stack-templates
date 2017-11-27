@@ -2,10 +2,16 @@
 name:                {{name}}
 version:             0.1.0.0
 github:              {{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+synopsis:            Short description of your package
 license:             BSD3
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
 copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on Github at <https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme>
 
 extra-source-files:
 - README.md
