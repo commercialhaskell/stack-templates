@@ -315,6 +315,11 @@ ip-from-header: "_env:IP_FROM_HEADER:false"
 # Uncomment to set an explicit approot
 #approot:        "_env:APPROOT:http://localhost:3000"
 
+# By default, `yesod devel` runs in development, and built executables use
+# production settings (see below). To override this, use the following:
+#
+# development: false
+
 # Optional values with the following production defaults.
 # In development, they default to the inverse.
 #
@@ -967,11 +972,13 @@ instance FromJSON AppSettings where
         appPort                   <- o .: "port"
         appIpFromHeader           <- o .: "ip-from-header"
 
-        appDetailedRequestLogging <- o .:? "detailed-logging" .!= defaultDev
-        appShouldLogAll           <- o .:? "should-log-all"   .!= defaultDev
-        appReloadTemplates        <- o .:? "reload-templates" .!= defaultDev
-        appMutableStatic          <- o .:? "mutable-static"   .!= defaultDev
-        appSkipCombining          <- o .:? "skip-combining"   .!= defaultDev
+        dev                       <- o .:? "development"      .!= defaultDev
+
+        appDetailedRequestLogging <- o .:? "detailed-logging" .!= dev
+        appShouldLogAll           <- o .:? "should-log-all"   .!= dev
+        appReloadTemplates        <- o .:? "reload-templates" .!= dev
+        appMutableStatic          <- o .:? "mutable-static"   .!= dev
+        appSkipCombining          <- o .:? "skip-combining"   .!= dev
 
         appCopyright              <- o .: "copyright"
         appAnalytics              <- o .:? "analytics"
