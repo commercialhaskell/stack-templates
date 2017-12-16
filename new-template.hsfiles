@@ -1,11 +1,11 @@
 {-# START_FILE package.yaml #-}
 name:                {{name}}
 version:             0.1.0.0
-github:              {{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+github:              "{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}"
 license:             BSD3
-author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
-maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+author:              "{{author-name}}{{^author-name}}Author name here{{/author-name}}"
+maintainer:          "{{author-email}}{{^author-email}}example@example.com{{/author-email}}"
+copyright:           "{{copyright}}{{^copyright}}{{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}"
 
 extra-source-files:
 - README.md

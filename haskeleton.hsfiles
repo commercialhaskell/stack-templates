@@ -1,82 +1,47 @@
-{-# START_FILE {{ name }}.cabal #-}
--- This file has been generated from package.yaml by hpack version 0.9.0.
---
--- see: https://github.com/sol/hpack
-
-name:           {{ name }}
-version:        0.0.0
--- synopsis:
--- description:
-category:       Other
-homepage:       https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}#readme
-bug-reports:    https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/issues
-maintainer:     {{author-name}}{{^author-name}}Author name here{{/author-name}}
-license:        MIT
-build-type:     Simple
-cabal-version:  >= 1.10
-
-extra-source-files:
-    CHANGELOG.md
-    LICENSE.md
-    package.yaml
-    README.md
-    stack.yaml
-
-source-repository head
-  type: git
-  location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
-
-library
-  hs-source-dirs:
-      library
-  ghc-options: -Wall
-  build-depends:
-      base
-  exposed-modules:
-      Example
-  default-language: Haskell2010
-
-executable {{ name }}
-  main-is: Main.hs
-  hs-source-dirs:
-      executable
-  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
-  build-depends:
-      base
-    , {{ name }}
-  default-language: Haskell2010
-
-test-suite {{ name }}-test-suite
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  hs-source-dirs:
-      test-suite
-  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
-  build-depends:
-      base
-    , {{ name }}
-    , tasty
-    , tasty-hspec
-  default-language: Haskell2010
-
-benchmark {{ name }}-benchmarks
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  hs-source-dirs:
-      benchmark
-  ghc-options: -Wall -rtsopts -threaded -with-rtsopts=-N
-  build-depends:
-      base
-    , {{ name }}
-    , criterion
-  default-language: Haskell2010
-
 {-# START_FILE package.yaml #-}
 # This YAML file describes your package. Stack will automatically generate a
 # Cabal file when you run `stack build`. See the hpack website for help with
 # this file: <https://github.com/sol/hpack>.
+name: {{ name }}
+version: '0.0.0'
+github: "{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}"
+license: MIT
+author: "{{author-name}}{{^author-name}}Author name here{{/author-name}}"
+maintainer: "{{author-name}}{{^author-name}}Author name here{{/author-name}}"
+synopsis: A new Haskeleton package.
+description: {{ name }} is a new Haskeleton package.
+# category: Other
+
+extra-source-files:
+- CHANGELOG.md
+- LICENSE.md
+- package.yaml
+- README.md
+- stack.yaml
+
+ghc-options: -Wall
+
+library:
+  dependencies:
+  - base
+  source-dirs: library
+
+executables:
+  {{ name }}:
+    source-dirs: executable
+    main: Main.hs
+    dependencies:
+    - base
+    - {{ name }}
+    ghc-options:
+    - -rtsopts
+    - -threaded
+    - -with-rtsopts=-N
+
 benchmarks:
   {{ name }}-benchmarks:
+    source-dirs: benchmark
+    main: Main.hs
     dependencies:
     - base
     - {{ name }}
@@ -85,39 +50,11 @@ benchmarks:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
-    main: Main.hs
-    source-dirs: benchmark
-category: Other
-description: {{ name }} is a new Haskeleton package.
-executables:
-  {{ name }}:
-    dependencies:
-    - base
-    - {{ name }}
-    ghc-options:
-    - -rtsopts
-    - -threaded
-    - -with-rtsopts=-N
-    main: Main.hs
-    source-dirs: executable
-extra-source-files:
-- CHANGELOG.md
-- LICENSE.md
-- package.yaml
-- README.md
-- stack.yaml
-ghc-options: -Wall
-github: {{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
-library:
-  dependencies:
-  - base
-  source-dirs: library
-license: MIT
-maintainer: {{author-name}}{{^author-name}}Author name here{{/author-name}}
-name: {{ name }}
-synopsis: A new Haskeleton package.
+
 tests:
   {{ name }}-test-suite:
+    source-dirs: test-suite
+    main: Main.hs
     dependencies:
     - base
     - {{ name }}
@@ -127,9 +64,6 @@ tests:
     - -rtsopts
     - -threaded
     - -with-rtsopts=-N
-    main: Main.hs
-    source-dirs: test-suite
-version: '0.0.0'
 
 {-# START_FILE .gitignore #-}
 # Stack uses this directory as scratch space.
