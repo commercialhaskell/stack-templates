@@ -426,6 +426,7 @@ dependencies:
 - time
 - case-insensitive
 - wai
+- foreign-store
 
 # The library contains all of our application code. The executable
 # defined below is just a thin wrapper.
@@ -488,6 +489,7 @@ flags:
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application
