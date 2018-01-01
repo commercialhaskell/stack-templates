@@ -8,7 +8,7 @@ license:             ISC
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}TODO:<example@example.com>{{/author-email}}
-copyright:           © {{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
+copyright:           © {{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
 homepage:            https://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}
 bug-reports:         https://github.com/{{github-username}}{{^github-username}}TODO:<githubuser>{{/github-username}}/{{name}}/issues
 
@@ -167,7 +167,7 @@ main :: IO ()
 main = defaultMain [bench "inc 41" (whnf inc (41 :: Int))]
 
 {-# START_FILE LICENSE #-}
-Copyright (c) {{year}}{{^year}}2017{{/year}}, {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
+Copyright (c) {{year}}{{^year}}2018{{/year}}, {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above

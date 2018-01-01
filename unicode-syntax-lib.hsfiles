@@ -8,7 +8,7 @@ license:             BSD3
 license-file:        LICENCE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2017{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Data{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
@@ -41,7 +41,7 @@ data 𝕋 α β
 # {{name}}
 
 {-# START_FILE LICENCE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}{{^year}}2017{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}{{^year}}2018{{/year}}
 
 All rights reserved.
 
