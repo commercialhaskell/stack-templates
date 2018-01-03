@@ -12,7 +12,7 @@ extra-source-files:
 - ChangeLog.md
 
 # Metadata used when publishing your package
-synopsis:            Short description of your package
+# synopsis:            Short description of your package
 # category:            {{category}}{{^category}}Web{{/category}}
 
 # To avoid duplicated efforts in documentation and dealing with the
