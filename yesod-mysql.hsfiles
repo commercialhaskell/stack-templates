@@ -62,7 +62,7 @@ Start a development server with:
 stack exec -- yesod devel
 ```
 
-As your code changes, your site will be automatically be recompiled and redeployed to localhost.
+As your code changes, your site will be automatically recompiled and redeployed to localhost.
 
 ## Tests
 
