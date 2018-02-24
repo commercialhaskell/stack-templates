@@ -1,84 +1,64 @@
-{-# START_FILE package.yaml #-}
+{-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-github:              "{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}"
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
-author:              "{{author-name}}{{^author-name}}Author name here{{/author-name}}"
-maintainer:          "{{author-email}}{{^author-email}}example@example.com{{/author-email}}"
-copyright:           "{{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}"
+license-file:        LICENSE
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+category:            {{category}}{{^category}}Web{{/category}}
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
 
-extra-source-files:
-- README.md
-- ChangeLog.md
-
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            {{category}}{{^category}}Web{{/category}}
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on Github at <https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme>
-
-dependencies:
-- base >= 4.7 && < 5
-
-library:
-  source-dirs: src
-
-executables:
-  {{name}}-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - {{name}}
-
-tests:
-  {{name}}-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - {{name}}
+executable {{name}}
+  hs-source-dirs:      app
+  main-is:             Main.hs
+  default-language:    Haskell2010
+  build-depends:       base >= 4.7 && < 5
+                     , Spock >= 0.11
+                     , mtl
+                     , text
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
 
-{-# START_FILE test/Spec.hs #-}
-main :: IO ()
-main = putStrLn "Test suite not yet implemented"
-
-{-# START_FILE src/Lib.hs #-}
-module Lib
-    ( someFunc
-    ) where
-
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
-
 {-# START_FILE app/Main.hs #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import Lib
+import Web.Spock
+import Web.Spock.Config
+
+import Control.Monad.Trans
+import Data.Monoid
+import Data.IORef
+import qualified Data.Text as T
+
+data MySession = EmptySession
+data MyAppState = DummyAppState (IORef Int)
 
 main :: IO ()
-main = someFunc
+main =
+    do ref <- newIORef 0
+       spockCfg <- defaultSpockCfg EmptySession PCNoDatabase (DummyAppState ref)
+       runSpock 8080 (spock spockCfg app)
+
+app :: SpockM () MySession MyAppState ()
+app =
+    do get root $
+           text "Hello World!"
+       get ("hello" <//> var) $ \name ->
+           do (DummyAppState ref) <- getState
+              visitorNumber <- liftIO $ atomicModifyIORef' ref $ \i -> (i+1, i+1)
+              text ("Hello " <> name <> ", you are visitor number " <> T.pack (show visitorNumber))
 
 {-# START_FILE README.md #-}
 # {{name}}
-
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
-
-## Unreleased changes
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2018{{/year}}
@@ -111,8 +91,3 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-{-# START_FILE .gitignore #-}
-.stack-work/
-{{name}}.cabal
-*~

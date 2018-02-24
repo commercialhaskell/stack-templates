@@ -4,26 +4,6 @@
  (hamlet-mode . ((hamlet/basic-offset . 4)
                  (haskell-process-use-ghci . t))))
 
-{-# START_FILE .ghci #-}
-:set -i.:config:dist/build/autogen
-:set -DDEVELOPMENT
-:set -XCPP
-:set -XDeriveDataTypeable
-:set -XEmptyDataDecls
-:set -XFlexibleContexts
-:set -XGADTs
-:set -XGeneralizedNewtypeDeriving
-:set -XMultiParamTypeClasses
-:set -XNoImplicitPrelude
-:set -XNoMonomorphismRestriction
-:set -XOverloadedStrings
-:set -XQuasiQuotes
-:set -XRecordWildCards
-:set -XTemplateHaskell
-:set -XTupleSections
-:set -XTypeFamilies
-:set -XViewPatterns
-
 {-# START_FILE .gitignore #-}
 dist*
 static/tmp/
@@ -43,8 +23,83 @@ cabal.sandbox.config
 .DS_Store
 *.swp
 *.keter
+*~
+\#*
+{{name}}.cabal
 
-{-# START_FILE Add.hs #-}
+{-# START_FILE README.md #-}
+> *Note: This project was generated from the `yesod-minimal` scaffolding, and does not support features like `yesod devel`. If you want these features, use the `yesod-simple` stack template.*
+
+## Haskell Setup
+
+1. If you haven't already, [install Stack](https://haskell-lang.org/get-started)
+	* On POSIX systems, this is usually `curl -sSL https://get.haskellstack.org/ | sh`
+2. Install GHC: `stack setup`
+3. Build libraries: `stack build`
+
+## Development
+
+Start a development server with:
+
+```
+stack build --exec test-minimal
+```
+
+## Documentation
+
+* Read the [Yesod Book](https://www.yesodweb.com/book) online for free
+* Check [Stackage](http://stackage.org/) for documentation on the packages in your LTS Haskell version, or [search it using Hoogle](https://www.stackage.org/lts/hoogle?q=). Tip: Your LTS version is in your `stack.yaml` file.
+* For local documentation, use:
+	* `stack haddock --open` to generate Haddock documentation for your dependencies, and open that documentation in a browser
+	* `stack hoogle <function, module or type signature>` to generate a Hoogle database and search for your query
+* The [Yesod cookbook](https://github.com/yesodweb/yesod-cookbook) has sample code for various needs
+
+## Getting Help
+
+* Ask questions on [Stack Overflow, using the Yesod or Haskell tags](https://stackoverflow.com/questions/tagged/yesod+haskell)
+* Ask the [Yesod Google Group](https://groups.google.com/forum/#!forum/yesodweb)
+* There are several chatrooms you can ask for help:
+	* For IRC, try Freenode#yesod and Freenode#haskell
+	* [Functional Programming Slack](https://fpchat-invite.herokuapp.com/), in the #haskell, #haskell-beginners, or #yesod channels.
+
+{-# START_FILE app/Main.hs #-}
+import Application () -- for YesodDispatch instance
+import Foundation
+import Yesod.Core
+
+main :: IO ()
+main = warp 3000 App
+
+{-# START_FILE package.yaml #-}
+name:    {{name}}
+version: "0.0.0"
+
+dependencies:
+- base
+- yesod-core
+
+# The library contains all of our application code. The executable
+# defined below is just a thin wrapper.
+library:
+  source-dirs: src
+
+# Runnable executable for our application
+executables:
+  {{name}}:
+    main: Main.hs
+    source-dirs: app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+
+{-# START_FILE routes #-}
+/              HomeR GET
+/add/#Int/#Int AddR  GET
+
+{-# START_FILE src/Add.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 module Add where
@@ -61,10 +116,12 @@ getAddR x y = selectRep $ do
   where
     z = x + y
 
-{-# START_FILE Application.hs #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE ViewPatterns      #-}
+{-# START_FILE src/Application.hs #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE ViewPatterns         #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Application where
 
 import Foundation
@@ -75,7 +132,7 @@ import Home
 
 mkYesodDispatch "App" resourcesApp
 
-{-# START_FILE Foundation.hs #-}
+{-# START_FILE src/Foundation.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
@@ -90,7 +147,7 @@ mkYesodData "App" $(parseRoutesFile "routes")
 
 instance Yesod App
 
-{-# START_FILE Home.hs #-}
+{-# START_FILE src/Home.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes       #-}
 module Home where
@@ -107,81 +164,4 @@ getHomeR = defaultLayout $ do
         <p>
             <a href=@{AddR 5 7}?_accept=application/json>JSON addition
     |]
-
-{-# START_FILE Main.hs #-}
-import Application () -- for YesodDispatch instance
-import Foundation
-import Yesod.Core
-
-main :: IO ()
-main = warp 3000 App
-
-{-# START_FILE {{name}}.cabal #-}
-name:               {{name}}
-version:            0.0.0
-cabal-version:      >= 1.8
-build-type:         Simple
-extra-source-files: routes
-
-executable          {{name}}
-  main-is:          Main.hs
-  other-modules:    Application
-                    Foundation
-
-                    Add
-                    Home
-
-  ghc-options:      -Wall -fwarn-tabs -O2
-
-  build-depends:  base
-                , yesod-core
-
-  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
-
-{-# START_FILE routes #-}
-/              HomeR GET
-/add/#Int/#Int AddR  GET
-
-{-# START_FILE test/Handler/CommentSpec.hs #-}
-module Handler.CommentSpec (spec) where
-
-import TestImport
-import Data.Aeson
-
-spec :: Spec
-spec = withApp $ do
-    describe "valid request" $ do
-        it "gives a 200" $ do
-            get HomeR
-            statusIs 200
-
-            let message = "My message" :: Text
-                body = object [ "message" .= message ]
-                encoded = encode body
-
-            request $ do
-                setMethod "POST"
-                setUrl CommentR
-                setRequestBody encoded
-                addRequestHeader ("Content-Type", "application/json")
-                addTokenFromCookie
-            
-            statusIs 200
-
-            [Entity _id comment] <- runDB $ selectList [CommentMessage ==. message] []
-            assertEqual "Should have " comment (Comment message Nothing)
-
-    describe "invalid requests" $ do
-        it "400s when the JSON body is invalid" $ do
-            get HomeR
-
-            let body = object [ "foo" .= ("My message" :: Value) ]
-            request $ do
-                setMethod "POST"
-                setUrl CommentR
-                setRequestBody $ encode body
-                addRequestHeader ("Content-Type", "application/json")
-                addTokenFromCookie
-            statusIs 400
-
 

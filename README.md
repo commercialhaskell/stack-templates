@@ -1,5 +1,14 @@
-A repository for templates used by `stack new`.
-See: http://haskellstack.org
+## Status
+
+There [are plans] to change the way Stack templates are done in the near
+future. Therefore, the project [is not accepting new templates] at this moment.
+
+[are plans]: https://github.com/commercialhaskell/stack/issues/2681
+[is not accepting new templates]: https://github.com/commercialhaskell/stack-templates/pull/81#issuecomment-258701968
+
+A repository for templates used by `stack new`. See: http://haskellstack.org
+
+[![Build Status](https://travis-ci.org/commercialhaskell/stack-templates.svg?branch=master)](https://travis-ci.org/commercialhaskell/stack-templates)
 
 ## Introduction
 
@@ -21,7 +30,7 @@ templates:
   params:
     author-email: chrisdone@gmail.com
     author-name: Chris Done
-    copyright: 2016 Chris Done
+    copyright: 2018 Chris Done
     github-username: chrisdone
     category: Development
 ```
@@ -50,3 +59,15 @@ parameters, use this Mustache syntax:
 ```
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 ```
+
+## `template-info.yaml`
+
+When contributing a new template, please remember to add a corresponding entry
+to `template-info.yaml`. Additional descriptive information for the template
+may be provided, but is not required.
+
+## Yesod templates
+
+NOTE: The Yesod templates are generated from the
+[yesod-scaffold repo](https://github.com/yesodweb/yesod-scaffold). Please
+send pull requests for those templates to that repo instead.

@@ -1,16 +1,17 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            UnicodeSyntax executable template from stack
-description:         Please see README.md
-homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENCE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 executable {{name}}
@@ -21,7 +22,7 @@ executable {{name}}
   main-is:             Main.hs
   build-depends:       base
                      , base-unicode-symbols
-                     
+
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
@@ -30,6 +31,9 @@ main = defaultMain
 main ∷ IO ()
 main = do
   putStrLn "ᚣ"
+
+{-# START_FILE README.md #-}
+# {{name}}
 
 {-# START_FILE LICENCE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}

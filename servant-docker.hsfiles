@@ -1,17 +1,17 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
-homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
@@ -24,7 +24,7 @@ library
                      , warp
   default-language:    Haskell2010
 
-executable {{name}}-exe
+executable {{name}}
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
@@ -78,7 +78,7 @@ $(deriveJSON defaultOptions ''User)
 type API = "users" :> Get '[JSON] [User]
 
 startApp :: IO ()
-startApp = run 8080 app
+startApp = run 1234 app
 
 app :: Application
 app = serve api server
@@ -92,6 +92,7 @@ server = return users
 users :: [User]
 users = [ User 1 "Isaac" "Newton"
         , User 2 "Albert" "Einstein"
+        , User 3 "Stephen" "Hawking"
         ]
 
 {-# START_FILE app/Main.hs #-}
@@ -102,8 +103,11 @@ import Lib
 main :: IO ()
 main = startApp
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENSE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2016{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2018{{/year}}
 
 All rights reserved.
 
@@ -134,30 +138,74 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 {-# START_FILE docker-compose.yml #-}
-api:
-  image: {{name}}
-  environment:
-    - VIRTUAL_HOST={{virtual-host}}
-    - LETSENCRYPT_HOST={{virtual-host}}
-    - LETSENCRYPT_EMAIL={{author-email}}
-  command: /usr/local/bin/{{name}}-exe
-  port:
-    - "8080"
-nginxproxy:
-  image: jwilder/nginx-proxy
-  volumes:
-    - /var/run/docker.sock:/tmp/docker.sock:ro
-    - ./certs:/etc/nginx/certs:ro
-    - /etc/nginx/vhost.d
-    - /usr/share/nginx/html
-  ports:
-    - "80:80"
-    - "443:443"
-letsencrypt:
-  image: jrcs/letsencrypt-nginx-proxy-companion
-  volumes:
-    - ./certs:/etc/nginx/certs:rw
-    - /var/run/docker.sock:/var/run/docker.sock:ro
-  volumes_from:
-    - nginxproxy
-{-# START_FILE certs/.empty #-}
+version: '3'
+services:
+    {{name}}:
+        build: .
+        image: {{name}}
+        command: {{name}}
+        expose:
+            - "1234"
+    nginx:
+        build: ./nginx
+        image: nginx
+        ports:
+            - "8080:80"
+        depends_on:
+            - {{name}}
+
+{-# START_FILE Dockerfile #-}
+FROM haskell:8.0
+
+RUN mkdir -p /app/user
+WORKDIR /app/user
+COPY stack.yaml *.cabal ./
+
+RUN export PATH=$(stack path --local-bin):$PATH
+RUN stack build --dependencies-only
+
+COPY . /app/user
+RUN stack install
+
+{-# START_FILE nginx/Dockerfile #-}
+FROM nginx
+RUN rm -v /etc/nginx/nginx.conf
+ADD nginx.conf /etc/nginx
+CMD service nginx start
+{-# START_FILE nginx/nginx.conf #-}
+daemon off;
+
+user  nginx;
+worker_processes  1;
+
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    sendfile        on;
+
+    upstream app {
+        server {{name}}:1234;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        location / {
+            proxy_pass http://app/;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header Host $http_host;
+            proxy_redirect off;
+        }
+    }
+}

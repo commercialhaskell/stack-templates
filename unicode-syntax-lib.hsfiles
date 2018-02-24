@@ -1,16 +1,17 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            UnicodeSyntax library template from stack
-description:         Please see README.md
-homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENCE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Data{{/category}}
 build-type:          Simple
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
@@ -36,8 +37,11 @@ data 𝕋 α β
 ϝ _ r _ (ℙ b  ) = r b
 ϝ _ _ g (ℚ a b) = g a b
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENCE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}{{^year}}2016{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} © {{year}}{{^year}}2018{{/year}}
 
 All rights reserved.
 

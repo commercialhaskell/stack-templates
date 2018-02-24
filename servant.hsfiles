@@ -1,17 +1,17 @@
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
-synopsis:            Initial project template from stack
-description:         Please see README.md
-homepage:            http://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
+-- synopsis:
+-- description:
+homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
 license:             BSD3
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2016{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
@@ -38,6 +38,10 @@ test-suite {{name}}-test
   main-is:             Spec.hs
   build-depends:       base
                      , {{name}}
+                     , hspec
+                     , hspec-wai
+                     , hspec-wai-json
+                     , aeson
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
@@ -50,8 +54,26 @@ import Distribution.Simple
 main = defaultMain
 
 {-# START_FILE test/Spec.hs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Main (main) where
+
+import Lib (app)
+import Test.Hspec
+import Test.Hspec.Wai
+import Test.Hspec.Wai.JSON
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = hspec spec
+
+spec :: Spec
+spec = with (return app) $ do
+    describe "GET /users" $ do
+        it "responds with 200" $ do
+            get "/users" `shouldRespondWith` 200
+        it "responds with [User]" $ do
+            let users = "[{\"userId\":1,\"userFirstName\":\"Isaac\",\"userLastName\":\"Newton\"},{\"userId\":2,\"userFirstName\":\"Albert\",\"userLastName\":\"Einstein\"}]"
+            get "/users" `shouldRespondWith` users
 
 {-# START_FILE src/Lib.hs #-}
 {-# LANGUAGE DataKinds       #-}
@@ -59,6 +81,7 @@ main = putStrLn "Test suite not yet implemented"
 {-# LANGUAGE TypeOperators   #-}
 module Lib
     ( startApp
+    , app
     ) where
 
 import Data.Aeson
@@ -102,8 +125,11 @@ import Lib
 main :: IO ()
 main = startApp
 
+{-# START_FILE README.md #-}
+# {{name}}
+
 {-# START_FILE LICENSE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2016{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2018{{/year}}
 
 All rights reserved.
 

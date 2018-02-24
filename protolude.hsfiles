@@ -16,20 +16,23 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Example
+  ghc-options:         -Wall
+  exposed-modules:     Lib
+  other-modules:       Lib.Prelude
   build-depends:       base >= 4.7 && < 5
-                     , aeson
-                     , scotty
-                     , wai
+                     , protolude >= 0.1.6 && < 0.2
   default-language:    Haskell2010
+  default-extensions:  OverloadedStrings, NoImplicitPrelude
 
 executable {{name}}-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -threaded -O2 -rtsopts -with-rtsopts=-N
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , {{name}}
+                     , protolude >= 0.1.6 && < 0.2
   default-language:    Haskell2010
+  default-extensions:  OverloadedStrings, NoImplicitPrelude
 
 test-suite {{name}}-test
   type:                exitcode-stdio-1.0
@@ -37,13 +40,10 @@ test-suite {{name}}-test
   main-is:             Spec.hs
   build-depends:       base
                      , {{name}}
-                     , hspec
-                     , hspec-wai
-                     , hspec-wai-json
-                     , http-types
-                     , aeson
-  ghc-options:         -threaded -O2 -rtsopts -with-rtsopts=-N
+                     , protolude >= 0.1.6 && < 0.2
+  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
+  default-extensions:  OverloadedStrings, NoImplicitPrelude
 
 source-repository head
   type:     git
@@ -51,79 +51,57 @@ source-repository head
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
-
 main = defaultMain
 
 {-# START_FILE test/Spec.hs #-}
-{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
-module Main (main) where
-
-import           Test.Hspec
-import           Test.Hspec.Wai
-import           Test.Hspec.Wai.JSON
-import           Network.HTTP.Types.Header
-import           Data.Aeson (Value(..), object, (.=))
-
-import           Example (app)
+import Protolude
 
 main :: IO ()
-main = hspec spec
+main = putStrLn ("Test suite not yet implemented" :: Text)
 
-spec :: Spec
-spec = with app $ do
-  describe "GET /" $ do
-    it "responds with 200" $ do
-      get "/" `shouldRespondWith` 200
+{-# START_FILE src/Lib/Prelude.hs #-}
+{-
+Welcome to your custom Prelude
+Export here everything that should always be in your library scope
+For more info on what is exported by Protolude check:
+https://github.com/sdiehl/protolude/blob/master/Symbols.md
+-}
+module Lib.Prelude
+    ( module Exports
+    ) where
 
-    it "responds with 'hello'" $ do
-      get "/" `shouldRespondWith` "hello"
+import Protolude as Exports
 
-    it "responds with 200 / 'hello'" $ do
-      get "/" `shouldRespondWith` "hello" {matchStatus = 200}
+{-# START_FILE src/Lib.hs #-}
+{-|
+Module      : Lib
+Description : Lib's main module
 
-    it "has 'Content-Type: text/plain; charset=utf-8'" $ do
-      get "/" `shouldRespondWith` 200 {matchHeaders = ["Content-Type" <:> "text/plain; charset=utf-8"]}
+This is a haddock comment describing your library
+For more information on how to write Haddock comments check the user guide:
+<https://www.haskell.org/haddock/doc/html/index.html>
+-}
+module Lib
+    ( someFunc
+    ) where
 
-  describe "GET /some-json" $ do
-    it "responds with some JSON" $ do
-      get "/some-json" `shouldRespondWith` expectedJsonResponse
+import Lib.Prelude
 
-expectedJsonResponse = 
-  let ResponseMatcher status headers body = [json|{foo: 23, bar: 42}|]
-  in ResponseMatcher status [hContentType <:> "application/json; charset=utf-8"] body
-
-{-# START_FILE src/Example.hs #-}
-{-# LANGUAGE OverloadedStrings, QuasiQuotes #-}
-module Example (runApp, app) where
-
-import           Data.Aeson (Value(..), object, (.=))
-import           Network.Wai (Application)
-import qualified Web.Scotty as S
-
-app' :: S.ScottyM ()
-app' = do
-  S.get "/" $ do
-    S.text "hello"
-
-  S.get "/some-json" $ do
-    S.json $ object ["foo" .= Number 23, "bar" .= Number 42]
-
-app :: IO Application
-app = S.scottyApp app'
-
-runApp :: IO ()
-runApp = S.scotty 8080 app'
+-- | Prints someFunc
+--
+-- >>> someFunc 10
+-- someFunc
+someFunc :: IO ()
+someFunc = putStrLn ("someFunc" :: Text)
 
 {-# START_FILE app/Main.hs #-}
 module Main where
 
-import           Example (runApp)
+import Protolude
+import Lib
 
 main :: IO ()
-main = runApp
-
-{-# START_FILE README.md #-}
-# {{name}}
+main = someFunc
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2018{{/year}}
@@ -156,19 +134,7 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+{-# START_FILE README.md #-}
+# {{name}}
 
-{-# START_FILE .ghci #-}
-:set -XOverloadedStrings
-:set -XQuasiQuotes
-
-{-# START_FILE .gitignore #-}
-dist*
-*.hi
-*.o
-.hsenv*
-.stack-work/
-.cabal-sandbox
-cabal.sandbox.config
-.DS_Store
-*.swp
-*.keter
+add description of {{name}} here

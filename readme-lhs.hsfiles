@@ -1,0 +1,522 @@
+{-# START_FILE readme.md #-}
+{{name}}
+===
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+See https://{{github-username}}{{^github-username}}githubuser{{/github-username}}.github.io/{{name}}/index.html for project description.
+
+~~~
+stack build --test --exec "$(stack path --local-install-root)/bin/{{name}}-example" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/example.lhs -t html -o index.html --filter pandoc-include --mathjax" --file-watch
+~~~
+
+{-# START_FILE app/example.lhs #-}
+```include
+other/header.md
+```
+
+{{name}}
+===
+
+[ghc options](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference)
+---
+
+\begin{code}
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+\end{code}
+
+[pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html)
+---
+
+\begin{code}
+-- doctest doesn't look at the cabal file, so you need pragmas here
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
+\end{code}
+
+[libraries](https://www.stackage.org/)
+---
+
+- [protolude](https://www.stackage.org/package/protolude)
+- [optparse-generic](https://www.stackage.org/package/optparse-generic)
+
+\begin{code}
+import Protolude
+import Options.Generic
+\end{code}
+
+code
+---
+
+- [hoogle](https://www.stackage.org/package/hoogle)
+
+\begin{code}
+data Opts w = Opts
+    { number :: w ::: Maybe Integer <?> "The number you want to product to"
+    }
+    deriving (Generic)
+
+instance ParseRecord (Opts Wrapped)
+
+main :: IO ()
+main = do
+    o :: Opts Unwrapped <- unwrapRecord "an example app for readme-lhs"
+    let n = fromMaybe 10 (number o)
+    let answer = product [1..n]
+    putStrLn (show answer <> " 👍" :: Text)
+    writeFile "other/answer.md"
+        ("$\\prod_{i=1}^{" <> show n <> "} i = " <>
+         show answer <> "$")
+\end{code}
+
+output
+---
+
+```include
+other/answer.md
+```
+
+tests
+---
+
+- [doctest](https://www.stackage.org/package/doctest)
+
+\begin{code}
+-- | doctests
+-- >>> let n = 10
+-- >>> product [1..n]
+-- 3628800
+\end{code}
+
+***
+
+<div class="footer">
+Powered by [haskell](https://haskell-lang.org/), [stack](https://docs.haskellstack.org/en/stable/README/) and [pandoc](http://pandoc.org/).
+</div>
+
+{-# START_FILE {{name}}.cabal #-}
+name:
+  {{name}}
+version:
+  0.0.1
+synopsis:
+  See readme.md
+description:
+  See readme.md for description.
+category:
+  project
+homepage:
+  https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+license:
+  BSD3
+license-file:
+  LICENSE
+author:
+  {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:
+  {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:
+  {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+build-type:
+  Simple
+cabal-version:
+  >=1.14
+extra-source-files:
+  readme.md
+  index.html
+  stack.yaml
+  other/lhs.css
+  other/header.md
+library
+  default-language:
+    Haskell2010
+  ghc-options:
+  hs-source-dirs:      
+
+  exposed-modules:
+
+  build-depends:
+    base >= 4.7 && < 5
+  default-extensions:
+    NoImplicitPrelude,
+    UnicodeSyntax,
+    BangPatterns,
+    BinaryLiterals,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveTraversable,
+    DisambiguateRecordFields,
+    EmptyCase,
+    FlexibleContexts,
+    FlexibleInstances,
+    FunctionalDependencies,
+    GADTSyntax,
+    InstanceSigs,
+    KindSignatures,
+    LambdaCase,
+    MonadComprehensions,
+    MultiParamTypeClasses,
+    MultiWayIf,
+    NegativeLiterals,
+    OverloadedStrings,
+    ParallelListComp,
+    PartialTypeSignatures,
+    PatternSynonyms,
+    RankNTypes,
+    RecordWildCards,
+    RecursiveDo,
+    ScopedTypeVariables,
+    TupleSections,
+    TypeFamilies,
+    TypeOperators
+
+executable {{name}}-example
+  default-language:
+    Haskell2010
+  ghc-options:
+    -funbox-strict-fields
+    -fforce-recomp
+    -threaded
+    -rtsopts
+    -with-rtsopts=-N
+  hs-source-dirs:
+    app
+  main-is:
+    example.lhs
+  build-depends:
+    base >= 4.7 && < 5,
+    protolude,
+    optparse-generic
+  default-extensions:
+    NoImplicitPrelude,
+    UnicodeSyntax,
+    BangPatterns,
+    BinaryLiterals,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveTraversable,
+    DisambiguateRecordFields,
+    EmptyCase,
+    FlexibleContexts,
+    FlexibleInstances,
+    FunctionalDependencies,
+    GADTSyntax,
+    InstanceSigs,
+    KindSignatures,
+    LambdaCase,
+    MonadComprehensions,
+    MultiParamTypeClasses,
+    MultiWayIf,
+    NegativeLiterals,
+    OverloadedStrings,
+    ParallelListComp,
+    PartialTypeSignatures,
+    PatternSynonyms,
+    RankNTypes,
+    RecordWildCards,
+    RecursiveDo,
+    ScopedTypeVariables,
+    TupleSections,
+    TypeFamilies,
+    TypeOperators
+
+test-suite test
+  default-language:
+    Haskell2010
+  type:
+    exitcode-stdio-1.0
+  hs-source-dirs:
+    test
+  main-is:
+    test.hs
+  build-depends:
+    base >= 4.7 && < 5,
+    tasty,
+    HUnit,
+    tasty-hunit,
+    QuickCheck,
+    tasty-quickcheck,
+    doctest,
+    protolude
+  default-extensions:
+    NoImplicitPrelude,
+    UnicodeSyntax,
+    BangPatterns,
+    BinaryLiterals,
+    DeriveFoldable,
+    DeriveFunctor,
+    DeriveGeneric,
+    DeriveTraversable,
+    DisambiguateRecordFields,
+    EmptyCase,
+    FlexibleContexts,
+    FlexibleInstances,
+    FunctionalDependencies,
+    GADTSyntax,
+    InstanceSigs,
+    KindSignatures,
+    LambdaCase,
+    MonadComprehensions,
+    MultiParamTypeClasses,
+    MultiWayIf,
+    NegativeLiterals,
+    OverloadedStrings,
+    ParallelListComp,
+    PartialTypeSignatures,
+    PatternSynonyms,
+    RankNTypes,
+    RecordWildCards,
+    RecursiveDo,
+    ScopedTypeVariables,
+    TupleSections,
+    TypeFamilies,
+    TypeOperators
+
+source-repository head
+  type:
+    git
+  location:
+    https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
+
+{-# START_FILE .gitignore #-}
+/.stack-work/
+TAGS
+
+{-# START_FILE .gitattributes #-}
+other/* linguist-documentation
+index.html linguist-documentation
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE LICENSE #-}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2018{{/year}}
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of {{author-name}}{{^author-name}}Author name here{{/author-name}} nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .travis.yml #-}
+# This is the simple Travis configuration, which is intended for use
+# on applications which do not require cross-platform and
+# multiple-GHC-version support. For more information and other
+# options, see:
+#
+# https://docs.haskellstack.org/en/stable/travis_ci/
+#
+# Copy these contents into the root directory of your Github project in a file
+# named .travis.yml
+
+# Use new container infrastructure to enable caching
+sudo: false
+
+# Do not choose a language; we provide our own build tools.
+language: generic
+
+# Caching so the next build will be fast too.
+cache:
+  directories:
+  - $HOME/.stack
+
+# Ensure necessary system libraries are present
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+
+before_install:
+# Download and unpack the stack executable
+- mkdir -p ~/.local/bin
+- export PATH=$HOME/.local/bin:$PATH
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
+install:
+# Build dependencies
+- stack --no-terminal --install-ghc test --only-dependencies
+
+script:
+# Build the package, its tests, and its docs and run the tests
+- stack --no-terminal test --haddock --no-haddock-deps
+
+{-# START_FILE other/lhs.css #-}
+h1 {
+  font-family: "Rockwell", "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 32px;
+  margin: 16px 0 32px 0;
+  line-height: 1.1;
+}
+
+h2 {
+  font-family: "Rockwell", "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 24px;
+  margin: 40px 0 20px 0;
+  line-height: 1.1;
+}
+
+body {
+    background-color: #f6f6f6;
+    color: #3d3d3d;
+    font-family: "Futura", "Century Gothic", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    word-wrap: break-word;
+    min-width: 200px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 45px;
+}
+
+body a {
+    background-color: transparent;
+    border-bottom: 2px solid #e1e1e1;
+    color: #3d3d3d;
+    text-decoration: none;
+}
+
+body a:hover {
+    color: #2640cb;
+    border-color: #2640cb;
+    text-decoration: none;
+}
+
+body blockquote {
+  border-left: 0.25rem solid #ebebeb;
+  border-left-style: solid;
+  font-style: italic;
+  margin: 0.5rem 0 1rem 0;
+  padding: 0 0 0 1rem;
+  padding: 0 15px;
+  color: #777;
+}
+
+body code {
+    color: #49341c;
+    background-color: #f5f0f0;
+}
+
+body .footer {
+    color: #888888;
+    font-size: 10px;
+    text-align: right;
+}
+
+body hr {
+  height: 0;
+  margin: 15px 0;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #ddd;
+}
+
+body img {
+    max-width: 100%;
+    border: 0;
+}
+
+body pre {
+    color: #ab1f27;
+    background-color: #f5f0f0;
+    padding: 12px;
+    overflow: auto;
+}
+
+body ul {
+  margin: 1.25rem 0;
+  padding-left: 0;
+}
+
+body ul li {
+  counter-increment: this;
+  line-height: 1.313em;
+  list-style: none;
+  position: relative;
+}
+
+body ul li:after {
+  color: #757575;
+  content: "-";
+  font-size: 100%;
+  left: -1em;
+  position: absolute;
+  top: 0;
+}
+
+.sourceCode {
+    background-color: #f0f0f0;
+    color: #3d323d;
+    font-family: "lucida console", "9x15", "DejaVu Sans Mono", "Monaco";
+    font-size: 1em;
+}
+.sourceCode .ot { color: #3d323d; }
+.sourceCode .kw { color: #3d323d; }
+.sourceCode .dt { color: #ab1f27; }
+.sourceCode .dv { color: #2536d6; }
+.sourceCode .st { color: #2536d6; }
+.sourceCode .co {
+  color: #808080;
+  font-style: italic;
+}
+.sourceCode .fu { color: #e347e4; }
+
+{-# START_FILE other/header.md #-}
+<meta charset="utf-8">
+<link rel="stylesheet" href="other/lhs.css">
+<script type="text/javascript" async
+  src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+
+{-# START_FILE test/test.hs #-}
+{-# OPTIONS_GHC -Wall #-}
+
+module Main where
+
+import Protolude
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.DocTest
+
+main :: IO ()
+main = do
+    doctest ["app/example.lhs"]
+    defaultMain tests
+
+tests :: TestTree
+tests =
+    testGroup ""
+    [
+    ]
+
