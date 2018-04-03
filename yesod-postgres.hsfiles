@@ -475,7 +475,7 @@ executables:
 
 # Test suite
 tests:
-  test:
+  {{name}}-test:
     main: Spec.hs
     source-dirs: test
     ghc-options: -Wall
