@@ -1,0 +1,218 @@
+{-# START_FILE .gitignore #-}
+*.cabal
+*~
+*.swp
+tarballs/
+.stack-work/
+
+{-# START_FILE ChangeLog.md #-}
+# Changelog for PROJECTNAME
+
+## Unreleased changes
+
+{-# START_FILE LICENSE #-}
+Copyright AUTHOR (c) 2018
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+
+    * Redistributions in binary form must reproduce the above
+      copyright notice, this list of conditions and the following
+      disclaimer in the documentation and/or other materials provided
+      with the distribution.
+
+    * Neither the name of Author name here nor the names of other
+      contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE README.md #-}
+# PROJECTNAME
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE app/Main.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE TemplateHaskell #-}
+module Main (main) where
+
+import Import
+import Run
+import RIO.Process
+import Options.Applicative.Simple
+import qualified Paths_PROJECTNAME
+
+main :: IO ()
+main = do
+  (options, ()) <- simpleOptions
+    $(simpleVersion Paths_PROJECTNAME.version)
+    "Header for command line arguments"
+    "Program description, also for command line arguments"
+    (Options
+       <$> switch ( long "verbose"
+                 <> short 'v'
+                 <> help "Verbose output?"
+                  )
+    )
+    empty
+  lo <- logOptionsHandle stderr (optionsVerbose options)
+  pc <- mkDefaultProcessContext
+  withLogFunc lo $ \lf ->
+    let app = App
+          { appLogFunc = lf
+          , appProcessContext = pc
+          , appOptions = options
+          }
+     in runRIO app run
+
+{-# START_FILE package.yaml #-}
+name:                PROJECTNAME
+version:             0.1.0.0
+github:              GITHUB
+license:             BSD3
+author:              AUTHOR
+maintainer:          MAINTAINER
+copyright:           COPYRIGHT
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         DESCRIPTION
+
+dependencies:
+- base >= 4.10 && < 10
+- rio >= 0.1.1.0
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wredundant-constraints
+
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+
+library:
+  source-dirs: src
+
+executables:
+  PROJECTNAME-exe:
+    main:                Main.hs
+    source-dirs:         app
+    dependencies:
+    - PROJECTNAME
+    - optparse-simple
+
+tests:
+  PROJECTNAME-test:
+    main:                Spec.hs
+    source-dirs:         test
+    dependencies:
+    - PROJECTNAME
+    - hspec
+
+{-# START_FILE src/Import.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+module Import
+  ( module RIO
+  , module Types
+  ) where
+
+import RIO
+import Types
+
+{-# START_FILE src/Run.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+module Run (run) where
+
+import Import
+
+run :: RIO App ()
+run = do
+  logInfo "We're inside the application!"
+
+{-# START_FILE src/Types.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+module Types where
+
+import RIO
+import RIO.Process
+
+-- | Command line arguments
+data Options = Options
+  { optionsVerbose :: !Bool
+  }
+
+data App = App
+  { appLogFunc :: !LogFunc
+  , appProcessContext :: !ProcessContext
+  , appOptions :: !Options
+  -- Add other app-specific configuration information here
+  }
+
+instance HasLogFunc App where
+  logFuncL = lens appLogFunc (\x y -> x { appLogFunc = y })
+instance HasProcessContext App where
+  processContextL = lens appProcessContext (\x y -> x { appProcessContext = y })
+
+{-# START_FILE src/Util.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+-- | Silly utility module, used to demonstrate how to write a test
+-- case.
+module Util
+  ( plus2
+  ) where
+
+import RIO
+
+plus2 :: Int -> Int
+plus2 = (+ 2)
+
+{-# START_FILE test/Spec.hs #-}
+{-# OPTIONS_GHC -F -pgmF hspec-discover #-}
+
+{-# START_FILE test/UtilSpec.hs #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+module UtilSpec (spec) where
+
+import Import
+import Util
+import Test.Hspec
+import Test.Hspec.QuickCheck
+
+spec :: Spec
+spec = do
+  describe "plus2" $ do
+    it "basic check" $ plus2 0 `shouldBe` 2
+    it "overflow" $ plus2 maxBound `shouldBe` minBound + 1
+    prop "minus 2" $ \i -> plus2 i - 2 `shouldBe` i
+
