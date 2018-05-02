@@ -6,12 +6,12 @@ tarballs/
 .stack-work/
 
 {-# START_FILE ChangeLog.md #-}
-# Changelog for PROJECTNAME
+# Changelog for {{name}}
 
 ## Unreleased changes
 
 {-# START_FILE LICENSE #-}
-Copyright AUTHOR (c) 2018
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) 2018
 
 All rights reserved.
 
@@ -30,10 +30,10 @@ modification, are permitted provided that the following conditions are met:
       contributors may be used to endorse or promote products derived
       from this software without specific prior written permission.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+THIS SOFTWARE IS PROVIDED BY THE {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}} HOLDERS AND CONTRIBUTORS
 "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
 SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
 LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
@@ -43,7 +43,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 {-# START_FILE README.md #-}
-# PROJECTNAME
+# {{name}}
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
@@ -58,12 +58,12 @@ import Import
 import Run
 import RIO.Process
 import Options.Applicative.Simple
-import qualified Paths_PROJECTNAME
+import qualified Paths_{{name-as-varid}}
 
 main :: IO ()
 main = do
   (options, ()) <- simpleOptions
-    $(simpleVersion Paths_PROJECTNAME.version)
+    $(simpleVersion Paths_{{name-as-varid}}.version)
     "Header for command line arguments"
     "Program description, also for command line arguments"
     (Options
@@ -84,13 +84,13 @@ main = do
      in runRIO app run
 
 {-# START_FILE package.yaml #-}
-name:                PROJECTNAME
+name:                {{name}}
 version:             0.1.0.0
-github:              GITHUB
+github:              {{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 license:             BSD3
-author:              AUTHOR
-maintainer:          MAINTAINER
-copyright:           COPYRIGHT
+author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
+maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2018{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 
 extra-source-files:
 - README.md
@@ -103,7 +103,7 @@ extra-source-files:
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         DESCRIPTION
+description:         Please see the README on Github at <https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme>
 
 dependencies:
 - base >= 4.10 && < 10
@@ -116,28 +116,34 @@ ghc-options:
 - -Wincomplete-uni-patterns
 - -Wredundant-constraints
 
-- -threaded
-- -rtsopts
-- -with-rtsopts=-N
-
 library:
   source-dirs: src
 
 executables:
-  PROJECTNAME-exe:
+  {{name}}-exe:
     main:                Main.hs
     source-dirs:         app
     dependencies:
-    - PROJECTNAME
+    - {{name}}
     - optparse-simple
 
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+
 tests:
-  PROJECTNAME-test:
+  {{name}}-test:
     main:                Spec.hs
     source-dirs:         test
     dependencies:
-    - PROJECTNAME
+    - {{name}}
     - hspec
+
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
 
 {-# START_FILE src/Import.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
