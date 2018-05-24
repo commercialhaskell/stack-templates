@@ -17,6 +17,7 @@ config/client_session_key.aes
 .hsenv*
 cabal-dev/
 .stack-work/
+.stack-work-devel/
 yesod-devel/
 .cabal-sandbox
 cabal.sandbox.config
@@ -79,40 +80,45 @@ stack test --flag {{name}}:library-only --flag {{name}}:dev
 {-# START_FILE app/DevelMain.hs #-}
 -- | Running your app inside GHCi.
 --
--- To start up GHCi for usage with Yesod, first make sure you are in dev mode:
+-- This option provides significantly faster code reload compared to
+-- @yesod devel@. However, you do not get automatic code reload
+-- (which may be a benefit, depending on your perspective). To use this:
 --
--- > cabal configure -fdev
+-- 1. Start up GHCi
 --
--- Note that @yesod devel@ automatically sets the dev flag.
--- Now launch the repl:
+-- $ stack ghci {{name}}:lib --no-load --work-dir .stack-work-devel
 --
--- > cabal repl --ghc-options="-O0 -fobject-code"
+-- 2. Load this module
 --
--- To start your app, run:
+-- > :l app/DevelMain.hs
 --
--- > :l DevelMain
+-- 3. Run @update@
+--
+-- > DevelMain.update
+--
+-- 4. Your app should now be running, you can connect at http://localhost:3000
+--
+-- 5. Make changes to your code
+--
+-- 6. After saving your changes, reload by running:
+--
+-- > :r
 -- > DevelMain.update
 --
 -- You can also call @DevelMain.shutdown@ to stop the app
 --
--- You will need to add the foreign-store package to your .cabal file.
--- It is very light-weight.
---
--- If you don't use cabal repl, you will need
--- to run the following in GHCi or to add it to
--- your .ghci file.
---
--- :set -DDEVELOPMENT
---
 -- There is more information about this approach,
 -- on the wiki: https://github.com/yesodweb/yesod/wiki/ghci
+--
+-- WARNING: GHCi does not notice changes made to your template files.
+-- If you change a template, you'll need to either exit GHCi and reload,
+-- or manually @touch@ another Haskell module.
 
 module DevelMain where
 
 import Prelude
 import Application (getApplicationRepl, shutdownApp)
 
-import Control.Exception (finally)
 import Control.Monad ((>=>))
 import Control.Concurrent
 import Data.IORef
@@ -152,11 +158,12 @@ update = do
           -> IO ThreadId
     start done = do
         (port, site, app) <- getApplicationRepl
-        forkIO (finally (runSettings (setPort port defaultSettings) app)
-                        -- Note that this implies concurrency
-                        -- between shutdownApp and the next app that is starting.
-                        -- Normally this should be fine
-                        (putMVar done () >> shutdownApp site))
+        forkFinally
+            (runSettings (setPort port defaultSettings) app)
+            -- Note that this implies concurrency
+            -- between shutdownApp and the next app that is starting.
+            -- Normally this should be fine
+            (\_ -> putMVar done () >> shutdownApp site)
 
 -- | kill the server
 shutdown :: IO ()
@@ -412,7 +419,7 @@ dependencies:
 - directory >=1.1 && <1.4
 - warp >=3.0 && <3.3
 - data-default
-- aeson >=0.6 && <1.3
+- aeson >=0.6 && <1.4
 - conduit >=1.0 && <2.0
 - monad-logger >=0.3 && <0.4
 - fast-logger >=2.2 && <2.5

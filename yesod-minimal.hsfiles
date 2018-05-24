@@ -17,6 +17,7 @@ config/client_session_key.aes
 .hsenv*
 cabal-dev/
 .stack-work/
+.stack-work-devel/
 yesod-devel/
 .cabal-sandbox
 cabal.sandbox.config
