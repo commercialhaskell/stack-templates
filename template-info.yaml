@@ -34,6 +34,9 @@ quickcheck-test-framework:
 readme-lhs:
   description: small scale, quick start, literate haskell projects
 
+rio:
+  description:
+
 rubik:
   description:
 
@@ -83,9 +86,6 @@ yesod-mysql:
   description:
 
 yesod-postgres:
-  description:
-
-yesod-postgres-fay:
   description:
 
 yesod-simple:
