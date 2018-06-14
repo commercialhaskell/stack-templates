@@ -31,6 +31,9 @@ protolude:
 quickcheck-test-framework:
   description: a library for random testing of program properties
 
+rio:
+  description: Application template using the RIO monad. Has logging and options parsing.
+
 readme-lhs:
   description: small scale, quick start, literate haskell projects
 
@@ -83,9 +86,6 @@ yesod-mysql:
   description:
 
 yesod-postgres:
-  description:
-
-yesod-postgres-fay:
   description:
 
 yesod-simple:
