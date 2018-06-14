@@ -37,6 +37,9 @@ rio:
 readme-lhs:
   description: small scale, quick start, literate haskell projects
 
+rio:
+  description:
+
 rubik:
   description:
 
