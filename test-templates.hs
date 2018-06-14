@@ -8,8 +8,6 @@ stack runghc
 --package text
 --package unordered-containers
 --package yaml
---
--Wall -Werror
 -}
 
 {-# LANGUAGE ScopedTypeVariables #-}
