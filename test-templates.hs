@@ -53,13 +53,12 @@ isExcluded :: FilePath -> Bool
 isExcluded file = dropExtension file `elem` excluded
 
 main :: IO ()
-main = do 
-  
+main = do
   logImportant $ "Verifying " <> templateInfoFile
   verified <- verifyInfo
   case verified of
     Left err -> die err
-    _ -> return () 
+    _ -> return ()
 
   withHsfiles $ \ hsfiles ->
     forM_ hsfiles $ \ hsfile -> do
@@ -92,18 +91,18 @@ verifyInfo = do
           output = notEnough *** tooMuch $ check
       case check of
         (Nothing, Nothing) -> return $ Right ()
-        _                  -> return $ Left $ uncurry (<>) output 
+        _                  -> return $ Left $ uncurry (<>) output
   where
-    formatOutput header items = 
-      fromMaybe "" $ unlines . (header :) . map (" - " <>) <$> items    
+    formatOutput header items =
+      fromMaybe "" $ unlines . (header :) . map (" - " <>) <$> items
     notEnough = formatOutput $ "Add the following templates to " <> templateInfoFile <> ":"
     tooMuch   = formatOutput $ "Remove the following templates from " <> templateInfoFile <> ":"
 
 uniqueElems :: Eq a => [a] -> [a] -> (Maybe [a], Maybe [a])
 uniqueElems = bothWays unique
-  where 
+  where
     bothWays f xs ys = (f xs ys, f ys xs)
-    unique xs ys = 
+    unique xs ys =
       case xs \\ ys of
         []   -> Nothing
         diff -> Just diff
