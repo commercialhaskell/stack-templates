@@ -18,3 +18,7 @@ Wiki:
 https://github.com/commercialhaskell/stack-templates/wiki
 
 Please feel free to add your own templates to the Wiki for discoverability.
+
+Want to improve this text? Send us a PR!
+
+https://github.com/commercialhaskell/stack-templates/edit/master/STACK_HELP.md
