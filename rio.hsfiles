@@ -107,7 +107,7 @@ description:         Please see the README on Github at <https://github.com/{{gi
 
 dependencies:
 - base >= 4.11 && < 10
-- rio >= 0.1.9.0
+- rio >= 0.1.8.0
 
 ghc-options:
 - -Wall
