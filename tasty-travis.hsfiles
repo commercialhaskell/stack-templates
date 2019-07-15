@@ -1,5 +1,5 @@
-{-# START_FILE {{ name }}.cabal #-}
-name:                {{ name }}
+{-# START_FILE {{name}}.cabal #-}
+name:                {{name}}
 version:             0.1.0.0
 -- synopsis:
 -- description:
@@ -32,15 +32,15 @@ library
   exposed-modules:   Lib
   build-depends:     base >= 4.8 && < 5
 
-executable {{ name }}-exe
+executable {{name}}-exe
   default-language:  Haskell2010
   ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:    src-exe
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
-                   , {{ name }}
+                   , {{name}}
 
-test-suite {{ name }}-test
+test-suite {{name}}-test
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
   ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
@@ -50,9 +50,9 @@ test-suite {{ name }}-test
                    , tasty >= 0.11
                    , tasty-hunit >= 0.9
                    , tasty-smallcheck >= 0.8
-                   , {{ name }}
+                   , {{name}}
 
-test-suite {{ name }}-doctest
+test-suite {{name}}-doctest
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
   ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
@@ -62,9 +62,9 @@ test-suite {{ name }}-doctest
                    , doctest >=0.10
                    , Glob >= 0.7
                    , QuickCheck >= 2.5
-                   , {{ name }}
+                   , {{name}}
 
-benchmark {{ name }}-benchmark
+benchmark {{name}}-benchmark
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
   ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
@@ -72,7 +72,7 @@ benchmark {{ name }}-benchmark
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
                    , criterion >= 1.1
-                   , {{ name }}
+                   , {{name}}
 
 {-# START_FILE src/Lib.hs #-}
 -- | Example of a library file. It is also used for testing the test suites.
@@ -182,7 +182,7 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 {-# START_FILE README.md #-}
-{{ name }}
+{{name}}
 ==========
 
 New Haskell project using stack template `tasty-travis`.
@@ -234,11 +234,11 @@ cache:
 Change log
 ==========
 
-{{ name }} uses [Semantic Versioning][1].
+{{name}} uses [Semantic Versioning][1].
 The change log is available [on GitHub][2].
 
 [1]: http://semver.org/spec/v2.0.0.html
-[2]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/releases
+[2]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}/releases
 
 ## v0.1.0.0
 
@@ -262,13 +262,13 @@ In the following sections, I will explain how to use the template.
 Before you get started, there are a few things that this template couldn't
 provide for you. You should:
 
-* Add a synopsis to `{{ name }}.cabal`. It should be a short, one sentence
+* Add a synopsis to `{{name}}.cabal`. It should be a short, one sentence
   explanation of your project.
 
-* Edit the description field in `{{ name }}.cabal` if you don't like having
+* Edit the description field in `{{name}}.cabal` if you don't like having
   the description in the `README.md` file.
 
-* In `{{ name }}.cabal`, the category of the project has been set as 'Test'.
+* In `{{name}}.cabal`, the category of the project has been set as 'Test'.
   You might wish to change it to a more descriptive value. A list of
   categories that you can use for the project is available on Hackage at
   <http://hackage.haskell.org/packages>. Alternatively, you might prefer using
@@ -277,7 +277,7 @@ provide for you. You should:
 
 * If you haven't provided the `author-email`, `author-name`, and
   `github-username` to the `config.yaml` global file, you will have to search
-  for "TODO" markup and complete this information in `{{ name }}.cabal` and/or
+  for "TODO" markup and complete this information in `{{name}}.cabal` and/or
   in `LICENSE`.
 
 2. Creating the git repository
@@ -310,7 +310,7 @@ These are the stack commands you will likely use the most:
 stack build
 
 # Run the binary
-stack exec {{ name }}-exe
+stack exec {{name}}-exe
 
 # Run the test suite.
 stack test
@@ -332,7 +332,7 @@ the template also offers a way to benchmark the code.
 
 Your project might differ significantly from this template. For example, you
 might want to have a different number of executables. In that case, you should
-remove/add more executable stanzas in `{{ name }}.cabal`.
+remove/add more executable stanzas in `{{name}}.cabal`.
 
 Similarly, if you don't want both test suites, you can remove one of the
 stanzas. You could do the same for the benchmarks.
