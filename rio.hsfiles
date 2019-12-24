@@ -45,6 +45,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 {-# START_FILE README.md #-}
 # {{name}}
 
+## Execute  
+
+* Run `stack exec -- {{name}}-exe` to see "We're inside the application!"
+* With `stack exec -- {{name}}-exe --verbose` you will see the same message, with more logging.
+
+## Run tests
+
+`stack test`
+
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
