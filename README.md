@@ -27,7 +27,7 @@ templates:
   params:
     author-email: chrisdone@gmail.com
     author-name: Chris Done
-    copyright: 2019 Chris Done
+    copyright: 2022 Chris Done
     github-username: chrisdone
     category: Development
 ```
