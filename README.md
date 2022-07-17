@@ -1,12 +1,9 @@
 ## Status
 
-There [are plans] to change the way Stack templates are done in the near
-future. Therefore, the project [is not accepting new templates] at this moment.
-
-[are plans]: https://github.com/commercialhaskell/stack/issues/2681
-[is not accepting new templates]: https://github.com/commercialhaskell/stack-templates/pull/81#issuecomment-258701968
-
-A repository for templates used by `stack new`. See: http://haskellstack.org
+This repository is not accepting new templates. See
+[Stack documentation](https://docs.haskellstack.org/en/stable/GUIDE/#templates)
+for instructions on providing templates to your users, for example,
+by publishing them on GitHub or an arbitrary URL.
 
 [![Build Status](https://travis-ci.org/commercialhaskell/stack-templates.svg?branch=master)](https://travis-ci.org/commercialhaskell/stack-templates)
 
@@ -30,7 +27,7 @@ templates:
   params:
     author-email: chrisdone@gmail.com
     author-name: Chris Done
-    copyright: 2018 Chris Done
+    copyright: 2022 Chris Done
     github-username: chrisdone
     category: Development
 ```
