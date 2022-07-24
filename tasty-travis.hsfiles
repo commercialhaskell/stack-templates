@@ -19,6 +19,7 @@ cabal-version:       >=1.10
 
 extra-source-files:
   README.md
+  ChangeLog.md
   stack.yaml
 
 source-repository head
@@ -74,6 +75,10 @@ benchmark {{name}}-benchmark
                    , criterion >= 1.1
                    , {{name}}
 
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
 {-# START_FILE src/Lib.hs #-}
 -- | Example of a library file. It is also used for testing the test suites.
 module Lib
@@ -105,10 +110,6 @@ import Lib (inc)
 
 main :: IO ()
 main = print . inc $ (41 :: Int)
-
-{-# START_FILE Setup.hs #-}
-import Distribution.Simple
-main = defaultMain
 
 {-# START_FILE src-test/Main.hs #-}
 import Test.Tasty
@@ -166,6 +167,28 @@ import Lib (inc)
 main :: IO ()
 main = defaultMain [bench "inc 41" (whnf inc (41 :: Int))]
 
+{-# START_FILE README.md #-}
+{{name}}
+==========
+
+New Haskell project using stack template `tasty-travis`.
+
+Please read file `tutorial.md` for first steps in using the template.
+
+{-# START_FILE ChangeLog.md #-}
+Change log
+==========
+
+{{name}} uses [Semantic Versioning][1].
+The change log is available [on GitHub][2].
+
+[1]: http://semver.org/spec/v2.0.0.html
+[2]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}/releases
+
+## v0.1.0.0
+
+* Initially created.
+
 {-# START_FILE LICENSE #-}
 Copyright (c) {{year}}{{^year}}2022{{/year}}, {{author-name}}{{^author-name}}TODO:<Author name here>{{/author-name}}
 
@@ -180,14 +203,6 @@ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-{-# START_FILE README.md #-}
-{{name}}
-==========
-
-New Haskell project using stack template `tasty-travis`.
-
-Please read file `tutorial.md` for first steps in using the template.
 
 {-# START_FILE .gitignore #-}
 /tutorial.md
@@ -229,20 +244,6 @@ script: stack $ARGS --no-terminal --install-ghc test
 cache:
   directories:
   - $HOME/.stack
-
-{-# START_FILE CHANGELOG.md #-}
-Change log
-==========
-
-{{name}} uses [Semantic Versioning][1].
-The change log is available [on GitHub][2].
-
-[1]: http://semver.org/spec/v2.0.0.html
-[2]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}/releases
-
-## v0.1.0.0
-
-* Initially created.
 
 {-# START_FILE tutorial.md #-}
 

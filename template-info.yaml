@@ -16,6 +16,9 @@ haskeleton:
 hspec:
   description: a testing framework for Haskell inspired by the Ruby library RSpec
 
+kurt:
+  description:
+
 new-template:
   description:
 
@@ -68,22 +71,4 @@ unicode-syntax-exe:
   description:
 
 unicode-syntax-lib:
-  description:
-
-yesod-minimal:
-  description:
-
-yesod-mongo:
-  description:
-
-yesod-mysql:
-  description:
-
-yesod-postgres:
-  description:
-
-yesod-simple:
-  description:
-
-yesod-sqlite:
   description:

@@ -1,13 +1,17 @@
 #!/usr/bin/env stack
 {-
-stack runghc
---resolver lts-5.11 --install-ghc
+stack script
+--resolver lts-19.16
 --no-terminal
 --package mockery
 --package getopt-generics
 --package text
 --package unordered-containers
 --package yaml
+--package directory
+--package filepath
+--package process
+--package aeson
 -}
 
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -16,7 +20,8 @@ module Main (main) where
 
 import           Control.Arrow       ((***))
 import           Control.Monad       (forM_, unless)
-import           Data.HashMap.Strict (keys)
+import           Data.Aeson.Key      (toString)
+import           Data.Aeson.KeyMap   (keys)
 import           Data.List
 import           Data.Maybe          (fromMaybe)
 import           Data.Monoid
@@ -33,12 +38,13 @@ import           WithCli
 
 excluded :: [String]
 excluded =
-  "foundation" : -- foundation package is not available on stackage
+--  "foundation" : -- foundation package is not available on stackage
   "ghcjs-old-base" : -- ghcjs takes too long to setup
   "ghcjs" : -- ghcjs takes too long to setup
   "hakyll-template" : -- hakyll takes an excessive amount of time to compile its dependencies
   "quickcheck-test-framework" : -- test-suite fails (probably intentionally)
-  "simple-hpack" : -- stack init fails on missing cabal file (fixed in stack on master)
+--  "simple-hpack" : -- stack init fails on missing cabal file (fixed in stack on master)
+  "spock" : -- Spock not in LTS since lts-12.26 (GHC 8.4.4)
   "tasty-discover" : -- contains a stack file, makes `stack new` choke
   "yesod-mongo" : -- needs a running db instance
   "yesod-mysql" : -- needs a running db instance
@@ -84,7 +90,7 @@ verifyInfo = do
     Left ex -> return . Left $ "Invalid " <> templateInfoFile <> " file. " <> show ex
     Right o -> do
       templates <- getHsfiles
-      let info   = map T.unpack (keys o)
+      let info   = map toString (keys o)
           check  = uniqueElems (map takeBaseName templates) info
           output = notEnough *** tooMuch $ check
       case check of

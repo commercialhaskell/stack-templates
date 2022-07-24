@@ -12,6 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {
 category:            {{category}}{{^category}}Development{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
+                     ChangeLog.md
 cabal-version:       >=1.10
 
 library
@@ -43,7 +44,7 @@ test-suite style
   hs-source-dirs:      test
   main-is:             HLint.hs
   build-depends:       base  >=4.7 && <5
-                     , hlint ==1.*
+                     , hlint ==3.*
   default-language:    Haskell2010
   ghc-options:         -Wall
 
@@ -54,17 +55,6 @@ source-repository head
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
-
-{-# START_FILE CHANGELOG.md #-}
-# Changelog
-
-This package uses [Semantic Versioning][1].
-
-## v0.1.0.0
-
--   Initially created.
-
-[1]: http://semver.org/spec/v2.0.0.html
 
 {-# START_FILE test/Spec.hs #-}
 main :: IO ()
@@ -106,6 +96,17 @@ main = someFunc
 
 {-# START_FILE README.md #-}
 # {{name}}
+
+{-# START_FILE ChangeLog.md #-}
+# Changelog
+
+This package uses [Semantic Versioning][1].
+
+## v0.1.0.0
+
+-   Initially created.
+
+[1]: http://semver.org/spec/v2.0.0.html
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}

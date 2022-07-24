@@ -58,6 +58,7 @@ tests:
     dependencies:
     - base
     - {{ name }}
+    - hspec
     - tasty
     - tasty-hspec
     ghc-options:
@@ -65,11 +66,59 @@ tests:
     - -threaded
     - -with-rtsopts=-N
 
-{-# START_FILE .gitignore #-}
-# Stack uses this directory as scratch space.
-/.stack-work/
-# Stack generates the Cabal file from `package.yaml` through hpack.
-/*.cabal
+{-# START_FILE Setup.hs #-}
+-- This script is used to build and install your package. Typically you don't
+-- need to change it. The Cabal documentation has more information about this
+-- file: <https://www.haskell.org/cabal/users-guide/installing-packages.html>.
+import qualified Distribution.Simple
+
+main :: IO ()
+main = Distribution.Simple.defaultMain
+
+{-# START_FILE benchmark/Main.hs #-}
+-- You can benchmark your code quickly and effectively with Criterion. See its
+-- website for help: <http://www.serpentine.com/criterion/>.
+import Criterion.Main
+
+main :: IO ()
+main = defaultMain [bench "const" (whnf const ())]
+
+{-# START_FILE executable/Main.hs #-}
+-- It is generally a good idea to keep all your business logic in your library
+-- and only use it in the executable. Doing so allows others to use what you
+-- wrote in their libraries.
+import qualified Example
+
+main :: IO ()
+main = Example.main
+
+{-# START_FILE library/Example.hs #-}
+-- | An example module.
+module Example (main) where
+
+-- | An example function.
+main :: IO ()
+main = return ()
+
+{-# START_FILE test-suite/Main.hs #-}
+-- Tasty makes it easy to test your code. It is a test framework that can
+-- combine many different types of tests into one suite. See its website for
+-- help: <http://documentup.com/feuerbach/tasty>.
+import qualified Test.Tasty
+-- Hspec is one of the providers for Tasty. It provides a nice syntax for
+-- writing tests. Its website has more info: <https://hspec.github.io>.
+import Test.Tasty.Hspec
+import Test.Hspec
+
+main :: IO ()
+main = do
+    test <- testSpec "{{ name }}" spec
+    Test.Tasty.defaultMain test
+
+spec :: Spec
+spec = parallel $ do
+    it "is trivially true" $ do
+        True `shouldBe` True
 
 {-# START_FILE CHANGELOG.md #-}
 # Change log
@@ -79,31 +128,6 @@ The change log is available through the [releases on GitHub][].
 
 [Semantic Versioning]: http://semver.org/spec/v2.0.0.html
 [releases on GitHub]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}/releases
-
-{-# START_FILE LICENSE.md #-}
-[The MIT License (MIT)][]
-
-Copyright (c) {{year}}{{^year}}2022{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-of the Software, and to permit persons to whom the Software is furnished to do
-so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-[The MIT License (MIT)]: https://opensource.org/licenses/MIT
 
 {-# START_FILE README.md #-}
 # [{{ name }}][]
@@ -155,55 +179,33 @@ Thanks again, and happy hacking!
 
 [{{ name }}]: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{ name }}
 
-{-# START_FILE Setup.hs #-}
--- This script is used to build and install your package. Typically you don't
--- need to change it. The Cabal documentation has more information about this
--- file: <https://www.haskell.org/cabal/users-guide/installing-packages.html>.
-import qualified Distribution.Simple
+{-# START_FILE LICENSE.md #-}
+[The MIT License (MIT)][]
 
-main :: IO ()
-main = Distribution.Simple.defaultMain
+Copyright (c) {{year}}{{^year}}2022{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}
 
-{-# START_FILE benchmark/Main.hs #-}
--- You can benchmark your code quickly and effectively with Criterion. See its
--- website for help: <http://www.serpentine.com/criterion/>.
-import Criterion.Main
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
 
-main :: IO ()
-main = defaultMain [bench "const" (whnf const ())]
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-{-# START_FILE executable/Main.hs #-}
--- It is generally a good idea to keep all your business logic in your library
--- and only use it in the executable. Doing so allows others to use what you
--- wrote in their libraries.
-import qualified Example
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-main :: IO ()
-main = Example.main
+[The MIT License (MIT)]: https://opensource.org/licenses/MIT
 
-{-# START_FILE library/Example.hs #-}
--- | An example module.
-module Example (main) where
-
--- | An example function.
-main :: IO ()
-main = return ()
-
-{-# START_FILE test-suite/Main.hs #-}
--- Tasty makes it easy to test your code. It is a test framework that can
--- combine many different types of tests into one suite. See its website for
--- help: <http://documentup.com/feuerbach/tasty>.
-import qualified Test.Tasty
--- Hspec is one of the providers for Tasty. It provides a nice syntax for
--- writing tests. Its website has more info: <https://hspec.github.io>.
-import Test.Tasty.Hspec
-
-main :: IO ()
-main = do
-    test <- testSpec "{{ name }}" spec
-    Test.Tasty.defaultMain test
-
-spec :: Spec
-spec = parallel $ do
-    it "is trivially true" $ do
-        True `shouldBe` True
+{-# START_FILE .gitignore #-}
+# Stack uses this directory as scratch space.
+/.stack-work/
+# Stack generates the Cabal file from `package.yaml` through hpack.
+/*.cabal

@@ -12,6 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
+                     ChangeLog.md
 cabal-version:       >=1.10
 
 library
@@ -38,6 +39,19 @@ someFunc = putStrLn "someFunc"
 
 {-# START_FILE README.md #-}
 # {{name}}
+
+{-# START_FILE ChangeLog.md #-}
+# Changelog for {{name}}
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to the
+[Haskell Package Versioning Policy](https://pvp.haskell.org/).
+
+## Unreleased
+
+## 0.1.0.0 - YYYY-MM-DD
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
