@@ -1,114 +1,12 @@
-{-# START_FILE readme.md #-}
-{{name}}
-===
-
-[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
-
-See https://{{github-username}}{{^github-username}}githubuser{{/github-username}}.github.io/{{name}}/index.html for project description.
-
-~~~
-stack build --test --exec "$(stack path --local-install-root)/bin/{{name}}-example" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/example.lhs -t html -o index.html --filter pandoc-include --mathjax" --file-watch
-~~~
-
-{-# START_FILE app/example.lhs #-}
-```include
-other/header.md
-```
-
-{{name}}
-===
-
-[ghc options](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference)
----
-
-\begin{code}
-{-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -fno-warn-type-defaults #-}
-\end{code}
-
-[pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html)
----
-
-\begin{code}
--- doctest doesn't look at the cabal file, so you need pragmas here
-{-# LANGUAGE NoImplicitPrelude #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE FlexibleInstances #-}
-\end{code}
-
-[libraries](https://www.stackage.org/)
----
-
-- [protolude](https://www.stackage.org/package/protolude)
-- [optparse-generic](https://www.stackage.org/package/optparse-generic)
-
-\begin{code}
-import Protolude
-import Options.Generic
-\end{code}
-
-code
----
-
-- [hoogle](https://www.stackage.org/package/hoogle)
-
-\begin{code}
-data Opts w = Opts
-    { number :: w ::: Maybe Integer <?> "The number you want to product to"
-    }
-    deriving (Generic)
-
-instance ParseRecord (Opts Wrapped)
-
-main :: IO ()
-main = do
-    o :: Opts Unwrapped <- unwrapRecord "an example app for readme-lhs"
-    let n = fromMaybe 10 (number o)
-    let answer = product [1..n]
-    putStrLn (show answer <> " 👍" :: Text)
-    writeFile "other/answer.md"
-        ("$\\prod_{i=1}^{" <> show n <> "} i = " <>
-         show answer <> "$")
-\end{code}
-
-output
----
-
-```include
-other/answer.md
-```
-
-tests
----
-
-- [doctest](https://www.stackage.org/package/doctest)
-
-\begin{code}
--- | doctests
--- >>> let n = 10
--- >>> product [1..n]
--- 3628800
-\end{code}
-
-***
-
-<div class="footer">
-Powered by [haskell](https://haskell-lang.org/), [stack](https://docs.haskellstack.org/en/stable/README/) and [pandoc](http://pandoc.org/).
-</div>
-
 {-# START_FILE {{name}}.cabal #-}
 name:
   {{name}}
 version:
   0.0.1
 synopsis:
-  See readme.md
+  See README.md
 description:
-  See readme.md for description.
+  See README.md for description.
 category:
   project
 homepage:
@@ -128,7 +26,8 @@ build-type:
 cabal-version:
   >=1.14
 extra-source-files:
-  readme.md
+  README.md
+  ChangeLog.md
   index.html
   stack.yaml
   other/lhs.css
@@ -286,17 +185,144 @@ source-repository head
   location:
     https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 
-{-# START_FILE .gitignore #-}
-/.stack-work/
-TAGS
-
-{-# START_FILE .gitattributes #-}
-other/* linguist-documentation
-index.html linguist-documentation
-
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
+
+{-# START_FILE app/example.lhs #-}
+```include
+other/header.md
+```
+
+{{name}}
+===
+
+[ghc options](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/flags.html#flag-reference)
+---
+
+\begin{code}
+{-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+\end{code}
+
+[pragmas](https://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html)
+---
+
+\begin{code}
+-- doctest doesn't look at the cabal file, so you need pragmas here
+{-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
+\end{code}
+
+[libraries](https://www.stackage.org/)
+---
+
+- [protolude](https://www.stackage.org/package/protolude)
+- [optparse-generic](https://www.stackage.org/package/optparse-generic)
+
+\begin{code}
+import Protolude
+import Options.Generic
+\end{code}
+
+code
+---
+
+- [hoogle](https://www.stackage.org/package/hoogle)
+
+\begin{code}
+data Opts w = Opts
+    { number :: w ::: Maybe Integer <?> "The number you want to product to"
+    }
+    deriving (Generic)
+
+instance ParseRecord (Opts Wrapped)
+
+main :: IO ()
+main = do
+    o :: Opts Unwrapped <- unwrapRecord "an example app for readme-lhs"
+    let n = fromMaybe 10 (number o)
+    let answer = product [1..n]
+    putStrLn (show answer <> " 👍" :: Text)
+    writeFile "other/answer.md"
+        ("$\\prod_{i=1}^{" <> show n <> "} i = " <>
+         show answer <> "$")
+\end{code}
+
+output
+---
+
+```include
+other/answer.md
+```
+
+tests
+---
+
+- [doctest](https://www.stackage.org/package/doctest)
+
+\begin{code}
+-- | doctests
+-- >>> let n = 10
+-- >>> product [1..n]
+-- 3628800
+\end{code}
+
+***
+
+<div class="footer">
+Powered by [haskell](https://haskell-lang.org/), [stack](https://docs.haskellstack.org/en/stable/README/) and [pandoc](http://pandoc.org/).
+</div>
+
+{-# START_FILE test/test.hs #-}
+{-# OPTIONS_GHC -Wall #-}
+
+module Main where
+
+import Protolude
+import Test.Tasty (TestTree, testGroup, defaultMain)
+import Test.DocTest
+
+main :: IO ()
+main = do
+    doctest ["app/example.lhs"]
+    defaultMain tests
+
+tests :: TestTree
+tests =
+    testGroup ""
+    [
+    ]
+
+{-# START_FILE README.md #-}
+{{name}}
+===
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+See https://{{github-username}}{{^github-username}}githubuser{{/github-username}}.github.io/{{name}}/index.html for project description.
+
+~~~
+stack build --test --exec "$(stack path --local-install-root)/bin/{{name}}-example" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/example.lhs -t html -o index.html --filter pandoc-include --mathjax" --file-watch
+~~~
+
+{-# START_FILE ChangeLog.md #-}
+# Changelog for {{name}}
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to the
+[Haskell Package Versioning Policy](https://pvp.haskell.org/).
+
+## Unreleased
+
+## 0.0.1 - YYYY-MM-DD
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
@@ -329,6 +355,14 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .gitignore #-}
+/.stack-work/
+TAGS
+
+{-# START_FILE .gitattributes #-}
+other/* linguist-documentation
+index.html linguist-documentation
 
 {-# START_FILE .travis.yml #-}
 # This is the simple Travis configuration, which is intended for use
@@ -499,23 +533,3 @@ body ul li:after {
 <script type="text/javascript" async
   src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-MML-AM_CHTML">
 </script>
-
-{-# START_FILE test/test.hs #-}
-{-# OPTIONS_GHC -Wall #-}
-
-module Main where
-
-import Protolude
-import Test.Tasty (TestTree, testGroup, defaultMain)
-import Test.DocTest
-
-main :: IO ()
-main = do
-    doctest ["app/example.lhs"]
-    defaultMain tests
-
-tests :: TestTree
-tests =
-    testGroup ""
-    [
-    ]

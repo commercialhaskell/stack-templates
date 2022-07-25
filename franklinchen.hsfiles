@@ -1,10 +1,3 @@
-{-# START_FILE README.md #-}
-# {{name}}
-
-[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
-
-TODO Description.
-
 {-# START_FILE {{name}}.cabal #-}
 name:                {{name}}
 version:             0.1.0.0
@@ -19,6 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {
 category:            {{category}}{{^category}}Acme{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
+                     ChangeLog.md
 cabal-version:       >=1.10
 tested-with:         GHC == 7.10.2
 
@@ -51,12 +45,6 @@ test-suite spec
 source-repository head
   type:     git
   location: https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
-
-{-# START_FILE .gitignore #-}
-/dist/
-/.cabal-sandbox/
-/cabal.sandbox.config
-/.stack-work/
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
@@ -96,6 +84,7 @@ ourAdd :: Int  -- ^ left
        -> Int  -- ^ right
        -> Int  -- ^ sum
 ourAdd x y = x + y
+
 {-# START_FILE app/Main.hs #-}
 module Main where
 
@@ -105,6 +94,26 @@ import Text.Printf (printf)
 
 main :: IO ()
 main = printf "2 + 3 = %d\n" (ourAdd 2 3)
+
+{-# START_FILE README.md #-}
+# {{name}}
+
+[![Build Status](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}.png)](https://travis-ci.org/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}})
+
+TODO Description.
+
+{-# START_FILE ChangeLog.md #-}
+# Changelog for {{name}}
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to the
+[Haskell Package Versioning Policy](https://pvp.haskell.org/).
+
+## Unreleased
+
+## 0.1.0.0 - YYYY-MM-DD
 
 {-# START_FILE LICENSE #-}
 Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
@@ -137,6 +146,12 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
 THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .gitignore #-}
+/dist/
+/.cabal-sandbox/
+/cabal.sandbox.config
+/.stack-work/
 
 {-# START_FILE .travis.yml #-}
 # Use new container infrastructure to enable caching
