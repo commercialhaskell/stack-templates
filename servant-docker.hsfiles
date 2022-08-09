@@ -9,7 +9,7 @@ copyright:           "{{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} 
 
 extra-source-files:
 - README.md
-- ChangeLog.md
+- CHANGELOG.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -115,8 +115,8 @@ main = startApp
 {-# START_FILE README.md #-}
 # {{name}}
 
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
 
 All notable changes to this project will be documented in this file.
 

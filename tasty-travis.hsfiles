@@ -19,7 +19,7 @@ cabal-version:       >=1.10
 
 extra-source-files:
   README.md
-  ChangeLog.md
+  CHANGELOG.md
   stack.yaml
 
 source-repository head
@@ -175,7 +175,7 @@ New Haskell project using stack template `tasty-travis`.
 
 Please read file `tutorial.md` for first steps in using the template.
 
-{-# START_FILE ChangeLog.md #-}
+{-# START_FILE CHANGELOG.md #-}
 Change log
 ==========
 
