@@ -27,7 +27,7 @@ cabal-version:
   >=1.14
 extra-source-files:
   README.md
-  ChangeLog.md
+  CHANGELOG.md
   index.html
   stack.yaml
   other/lhs.css
@@ -311,8 +311,8 @@ See https://{{github-username}}{{^github-username}}githubuser{{/github-username}
 stack build --test --exec "$(stack path --local-install-root)/bin/{{name}}-example" --exec "$(stack path --local-bin)/pandoc -f markdown+lhs -i app/example.lhs -t html -o index.html --filter pandoc-include --mathjax" --file-watch
 ~~~
 
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
 
 All notable changes to this project will be documented in this file.
 

@@ -12,7 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
-                     ChangeLog.md
+                     CHANGELOG.md
 cabal-version:       >=1.10
 
 executable {{name}}
@@ -61,8 +61,8 @@ app =
 {-# START_FILE README.md #-}
 # {{name}}
 
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
 
 All notable changes to this project will be documented in this file.
 

@@ -12,7 +12,7 @@ copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {
 category:            {{category}}{{^category}}Acme{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
-                     ChangeLog.md
+                     CHANGELOG.md
 cabal-version:       >=1.10
 tested-with:         GHC == 7.10.2
 
@@ -102,8 +102,8 @@ main = printf "2 + 3 = %d\n" (ourAdd 2 3)
 
 TODO Description.
 
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
 
 All notable changes to this project will be documented in this file.
 

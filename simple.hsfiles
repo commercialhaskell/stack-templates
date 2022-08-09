@@ -13,7 +13,7 @@ category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  README.md
-                     ChangeLog.md
+                     CHANGELOG.md
 
 executable {{name}}
   hs-source-dirs:      src
@@ -28,8 +28,8 @@ main = defaultMain
 {-# START_FILE README.md #-}
 # {{name}}
 
-{-# START_FILE ChangeLog.md #-}
-# Changelog for {{name}}
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
 
 All notable changes to this project will be documented in this file.
 
