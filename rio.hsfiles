@@ -30,6 +30,8 @@ ghc-options:
 - -Widentities
 - -Wincomplete-record-updates
 - -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
 - -Wpartial-fields
 - -Wredundant-constraints
 
@@ -123,7 +125,10 @@ run = do
 
 {-# START_FILE src/Types.hs #-}
 {-# LANGUAGE NoImplicitPrelude #-}
-module Types where
+module Types
+  ( App (..)
+  , Options (..)
+  ) where
 
 import RIO
 import RIO.Process

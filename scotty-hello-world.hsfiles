@@ -7,10 +7,22 @@ build-type:    Simple
 executable          {{name}}
     hs-source-dirs: .
     main-is:        Main.hs
-    ghc-options:    -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5
                   , scotty
+    ghc-options:    -Wall
+                    -Wcompat
+                    -Widentities
+                    -Wincomplete-record-updates
+                    -Wincomplete-uni-patterns
+                    -Wmissing-export-lists
+                    -Wmissing-home-modules
+                    -Wpartial-fields
+                    -Wredundant-constraints
+                    -O2
+                    -threaded
+                    -rtsopts
+                    -with-rtsopts=-N
 
 {-# START_FILE Main.hs #-}
 {-# LANGUAGE OverloadedStrings #-}

@@ -27,6 +27,17 @@ dependencies:
 - wai
 - warp
 
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
 library:
   source-dirs: src
 
@@ -105,7 +116,7 @@ users = [ User 1 "Isaac" "Newton"
         ]
 
 {-# START_FILE app/Main.hs #-}
-module Main where
+module Main (main) where
 
 import Lib
 

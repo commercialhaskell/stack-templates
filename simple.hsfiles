@@ -20,6 +20,15 @@ executable {{name}}
   main-is:             Main.hs
   default-language:    Haskell2010
   build-depends:       base >= 4.7 && < 5
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
@@ -42,7 +51,7 @@ and this project adheres to the
 ## 0.1.0.0 - YYYY-MM-DD
 
 {-# START_FILE src/Main.hs #-}
-module Main where
+module Main (main) where
 
 main :: IO ()
 main = do

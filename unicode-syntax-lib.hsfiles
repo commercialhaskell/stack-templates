@@ -23,9 +23,21 @@ library
   exposed-modules:     Library
   build-depends:       base
                      , base-unicode-symbols
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 {-# START_FILE source/Library.hs #-}
-module Library where
+module Library
+  ( 𝕋 (..)
+  , ϝ
+  ) where
 
 data 𝕋 α β
   = ℍ α

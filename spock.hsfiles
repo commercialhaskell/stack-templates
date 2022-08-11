@@ -23,6 +23,15 @@ executable {{name}}
                      , Spock >= 0.11
                      , mtl
                      , text
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
@@ -30,7 +39,7 @@ main = defaultMain
 
 {-# START_FILE app/Main.hs #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Main where
+module Main (main) where
 
 import Web.Spock
 import Web.Spock.Config

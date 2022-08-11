@@ -23,6 +23,17 @@ description:         Please see the README on GitHub at <https://github.com/{{gi
 dependencies:
 - base >= 4.7 && < 5
 
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
 library:
   source-dirs: src
 
@@ -65,7 +76,7 @@ someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 {-# START_FILE app/Main.hs #-}
-module Main where
+module Main (main) where
 
 import Lib
 

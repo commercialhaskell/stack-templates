@@ -21,13 +21,22 @@ executable {{name}}
                      , OverloadedStrings
   build-depends:       base >= 4.7 && < 5
                      , foundation
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple
 main = defaultMain
 
 {-# START_FILE src/Main.hs #-}
-module Main where
+module Main (main) where
 
 import Foundation
 

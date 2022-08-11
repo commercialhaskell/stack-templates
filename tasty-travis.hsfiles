@@ -28,23 +28,45 @@ source-repository head
 
 library
   default-language:  Haskell2010
-  ghc-options:       -Wall -Werror -O2
   hs-source-dirs:    src
   exposed-modules:   Lib
   build-depends:     base >= 4.8 && < 5
+  ghc-options:         -Wall
+                       -Werror
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -O2
 
 executable {{name}}-exe
   default-language:  Haskell2010
-  ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:    src-exe
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
                    , {{name}}
+  ghc-options:       -Wall
+                     -Werror
+                     -Wcompat
+                     -Widentities
+                     -Wincomplete-record-updates
+                     -Wincomplete-uni-patterns
+                     -Wmissing-export-lists
+                     -Wmissing-home-modules
+                     -Wpartial-fields
+                     -Wredundant-constraints
+                     -O2
+                     -threaded
+                     -rtsopts
+                     -with-rtsopts=-N
 
 test-suite {{name}}-test
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
-  ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:    src-test
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
@@ -52,11 +74,24 @@ test-suite {{name}}-test
                    , tasty-hunit >= 0.9
                    , tasty-smallcheck >= 0.8
                    , {{name}}
+  ghc-options:       -Wall
+                     -Werror
+                     -Wcompat
+                     -Widentities
+                     -Wincomplete-record-updates
+                     -Wincomplete-uni-patterns
+                     -Wmissing-export-lists
+                     -Wmissing-home-modules
+                     -Wpartial-fields
+                     -Wredundant-constraints
+                     -O2
+                     -threaded
+                     -rtsopts
+                     -with-rtsopts=-N
 
 test-suite {{name}}-doctest
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
-  ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:    src-doctest
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
@@ -64,16 +99,43 @@ test-suite {{name}}-doctest
                    , Glob >= 0.7
                    , QuickCheck >= 2.5
                    , {{name}}
+  ghc-options:       -Wall
+                     -Werror
+                     -Wcompat
+                     -Widentities
+                     -Wincomplete-record-updates
+                     -Wincomplete-uni-patterns
+                     -Wmissing-export-lists
+                     -Wmissing-home-modules
+                     -Wpartial-fields
+                     -Wredundant-constraints
+                     -O2
+                     -threaded
+                     -rtsopts
+                     -with-rtsopts=-N
 
 benchmark {{name}}-benchmark
   type:              exitcode-stdio-1.0
   default-language:  Haskell2010
-  ghc-options:       -Wall -Werror -O2 -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:    src-benchmark
   main-is:           Main.hs
   build-depends:     base >= 4.8 && < 5
                    , criterion >= 1.1
                    , {{name}}
+  ghc-options:       -Wall
+                     -Werror
+                     -Wcompat
+                     -Widentities
+                     -Wincomplete-record-updates
+                     -Wincomplete-uni-patterns
+                     -Wmissing-export-lists
+                     -Wmissing-home-modules
+                     -Wpartial-fields
+                     -Wredundant-constraints
+                     -O2
+                     -threaded
+                     -rtsopts
+                     -with-rtsopts=-N
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple

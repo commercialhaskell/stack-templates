@@ -17,18 +17,37 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  ghc-options:         -Wall
   exposed-modules:     Lib
   build-depends:       base >= 4.7 && < 5
   default-language:    Haskell2010
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 executable {{name}}-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , {{name}}
   default-language:    Haskell2010
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
 
 test-suite {{name}}-test
   type:                exitcode-stdio-1.0
@@ -36,8 +55,19 @@ test-suite {{name}}-test
   main-is:             Spec.hs
   build-depends:       base
                      , {{name}}
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
 
 source-repository head
   type:     git
@@ -60,7 +90,7 @@ someFunc :: IO ()
 someFunc = putStrLn "someFunc"
 
 {-# START_FILE app/Main.hs #-}
-module Main where
+module Main (main) where
 
 import Lib
 
