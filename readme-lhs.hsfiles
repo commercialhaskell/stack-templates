@@ -28,7 +28,6 @@ cabal-version:
 extra-source-files:
   README.md
   CHANGELOG.md
-  index.html
   stack.yaml
   other/lhs.css
   other/header.md
@@ -36,6 +35,16 @@ library
   default-language:
     Haskell2010
   ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
+
   hs-source-dirs:
 
   exposed-modules:
@@ -80,6 +89,15 @@ executable {{name}}-example
   default-language:
     Haskell2010
   ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
     -funbox-strict-fields
     -fforce-recomp
     -threaded
@@ -178,6 +196,16 @@ test-suite test
     TupleSections,
     TypeFamilies,
     TypeOperators
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Widentities
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wmissing-export-lists
+    -Wmissing-home-modules
+    -Wpartial-fields
+    -Wredundant-constraints
 
 source-repository head
   type:
@@ -282,7 +310,7 @@ Powered by [haskell](https://haskell-lang.org/), [stack](https://docs.haskellsta
 {-# START_FILE test/test.hs #-}
 {-# OPTIONS_GHC -Wall #-}
 
-module Main where
+module Main (main) where
 
 import Protolude
 import Test.Tasty (TestTree, testGroup, defaultMain)

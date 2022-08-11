@@ -23,6 +23,15 @@ executable {{name}}
   main-is:             Main.hs
   build-depends:       base
                      , base-unicode-symbols
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 {-# START_FILE Setup.hs #-}
 import Distribution.Simple

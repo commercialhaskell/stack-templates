@@ -17,23 +17,42 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  ghc-options:         -Wall
   exposed-modules:     Lib
   other-modules:       Lib.Prelude
   build-depends:       base >= 4.7 && < 5
                      , protolude >= 0.1.6 && < 0.4
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
 
 executable {{name}}-exe
   hs-source-dirs:      app
   main-is:             Main.hs
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , {{name}}
                      , protolude >= 0.1.6 && < 0.4
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
 
 test-suite {{name}}-test
   type:                exitcode-stdio-1.0
@@ -42,9 +61,20 @@ test-suite {{name}}-test
   build-depends:       base
                      , {{name}}
                      , protolude >= 0.1.6 && < 0.4
-  ghc-options:         -Wall -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings, NoImplicitPrelude
+  ghc-options:         -Wall
+                       -Wcompat
+                       -Widentities
+                       -Wincomplete-record-updates
+                       -Wincomplete-uni-patterns
+                       -Wmissing-export-lists
+                       -Wmissing-home-modules
+                       -Wpartial-fields
+                       -Wredundant-constraints
+                       -threaded
+                       -rtsopts
+                       -with-rtsopts=-N
 
 source-repository head
   type:     git
@@ -96,7 +126,7 @@ someFunc :: IO ()
 someFunc = putStrLn ("someFunc" :: Text)
 
 {-# START_FILE app/Main.hs #-}
-module Main where
+module Main (main) where
 
 import Protolude
 import Lib
