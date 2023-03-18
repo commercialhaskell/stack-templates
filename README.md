@@ -1,11 +1,26 @@
-## Status
+## Project templates for Stack
 
-This repository is not accepting new templates. See
-[Stack documentation](https://docs.haskellstack.org/en/stable/GUIDE/#templates)
-for instructions on providing templates to your users, for example, by
-publishing them on GitHub or an arbitrary URL.
+From Stack 1.9.1, Stack allows any GitHub, GitLab or Bitbucket repository named
+`stack-templates` to provide project templates for Stack. For example, a
+template file at `username/stack-templates/my-template.hsfiles` on GitHub can be
+identified as `username/my-template` when using `stack new`. For more
+information see the output of the `stack templates` command and its
+[documentation](https://docs.haskellstack.org/en/stable/templates_command/).
 
-[![Build Status](https://travis-ci.org/commercialhaskell/stack-templates.svg?branch=master)](https://travis-ci.org/commercialhaskell/stack-templates)
+This repository provides the project template `new-template`, which is the
+default template used by `stack new`. It also provides `STACK_HELP.md`, which
+specifies the output of the `stack templates` command.
+
+This repository is the default one used by Stack and it provides 24 other
+project templates. Information about some of those templates is included in
+`template-info.yaml` and this repository's Wiki.
+
+Those project templates are maintained but this repository is not accepting new
+templates because of the difficulties in maintaining large numbers of templates
+centrally.
+
+This repository's Wiki provides a place where the Haskell community can
+announce the availability of project templates at other locations.
 
 ## Project template format
 
@@ -35,21 +50,30 @@ templates:
     category: Development
 ```
 
-When the user runs `stack new myproject yourtemplate` and they do not have the
-parameters provided in their Stack `config.yaml`, Stack will warn the user that
-such parameters were missing, like this:
+When the user runs `stack new my-project username/your-template` and they do not
+have the parameters provided in their Stack `config.yaml`, Stack will warn the
+user that such parameters were missing, like this:
 
 ```
-Downloading template "yourtemplate" to create project "myproject" in myproject/ ...
+Downloading template username/your-template to create project my-project in
+directory my-project/ ...
+Downloaded <path_to_username/your-template.hsfiles>.
 
-The following parameters were needed by the template but not provided: author-email, author-name
-You can provide them in <path to config.yaml>, like this:
-templates:
-  params:
-    author-email: value
-    author-name: value
-Or you can pass each one as parameters like this:
-stack new myproject yourtemplate -p "author-email:value" -p "author-name:value"
+Note: The following parameters were needed by the template but not provided:
+      author-email, and author-name.
+
+      You can provide them in Stack's global YAML configuration file
+      (<path_to_config.yaml>) like this:
+
+      templates:
+        params:
+          author-email: value
+          author-name: value
+
+      Or you can pass each one on the command line as parameters like this:
+
+      stack new my-project username/your-template -p "author-email:value"
+      -p "author-name:value"
 ```
 
 The output of the template will yield a blank space where your parameter was. If
@@ -65,12 +89,6 @@ author:              {{author-name}}{{^author-name}}Author name here{{/author-na
 The repository https://github.com/prikhi/stack-templatizer (unconnected with
 this repository) provides Haskell source code to build an application that
 will generate an `.hsfiles` file from the contents of a folder.
-
-## `template-info.yaml`
-
-When contributing a new template, please remember to add a corresponding entry
-to `template-info.yaml`. Additional descriptive information for the template may
-be provided, but is not required.
 
 ## Yesod templates
 
