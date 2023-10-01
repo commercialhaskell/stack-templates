@@ -2,19 +2,21 @@ chrisdone:
   description:
 
 foundation:
-  description: Project based on an alternative prelude with batteries and no dependencies.
+  description: >
+    Project based on an alternative prelude with batteries and no dependencies.
 
 franklinchen:
   description:
 
 hakyll-template:
-  description: a static website compiler library
+  description: A static website compiler library.
 
 haskeleton:
-  description: a project skeleton for Haskell packages
+  description: A project skeleton for Haskell packages.
 
 hspec:
-  description: a testing framework for Haskell inspired by the Ruby library RSpec
+  description: >
+    A testing framework for Haskell inspired by the Ruby library RSpec.
 
 kurt:
   description:
@@ -23,28 +25,35 @@ new-template:
   description:
 
 protolude:
-  description: Project using a custom Prelude based on the Protolude library
+  description: Project using a custom Prelude based on the Protolude library.
 
 quickcheck-test-framework:
-  description: a library for random testing of program properties
+  description: a library for random testing of program properties.
 
 rio:
-  description: Application template using the RIO monad. Has logging and options parsing.
+  description: >
+    Application template using the RIO monad. Has logging and options parsing.
 
 readme-lhs:
-  description: small scale, quick start, literate haskell projects
+  description: Small scale, quick start, literate haskell projects.
 
 rubik:
   description:
 
 scotty-hello-world:
-  description:
+  description: >
+    Simple executable making use of the scotty library, which provides a
+    Haskell web framework inspired by Ruby's Sinatra, using WAI and Warp.
 
 scotty-hspec-wai:
-  description:
+  description: >
+    Simple executable and test-suite making use of the scotty and wai libraries.
+    scotty provides a Haskell web framework inspired by Ruby's Sinatra, using
+    WAI and Warp. wai (Web Application Interface) provides a common protocol for
+    communication between web applications and web servers.
 
 servant:
-  description: a set of packages for declaring web APIs at the type-level
+  description: A set of packages for declaring web APIs at the type-level.
 
 servant-docker:
   description:
@@ -59,10 +68,10 @@ simple-library:
   description:
 
 spock:
-  description: a lightweight web framework
+  description: A lightweight web framework.
 
 tasty-discover:
-  description: a project with tasty-discover with setup
+  description: A project with tasty-discover with setup.
 
 tasty-travis:
   description:

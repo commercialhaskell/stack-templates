@@ -32,18 +32,29 @@ import Web.Scotty
 main :: IO ()
 main = scotty 3000 $ do
   get "/:word" $ do
-    beam <- param "word"
+    beam <- captureParam "word"
     html $ mconcat ["<h1>Scotty, ", beam, " me up!</h1>"]
 
 {-# START_FILE .ghci #-}
 :set -XOverloadedStrings
 
 {-# START_FILE .gitignore #-}
+# GHC build artefacts
 *.hi
 *.o
+
+# Haskell Tool Stack-related
 .stack-work/
+
+# Cabal-related
 .cabal-sandbox
 cabal.sandbox.config
+
+# macOS related
 .DS_Store
+
+# Vim-related
 *.swp
+
+# keter package-related: https://hackage.haskell.org/package/keter
 *.keter
