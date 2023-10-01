@@ -8,7 +8,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2023{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
@@ -116,7 +116,7 @@ and this project adheres to the
 ## 0.1.0.0 - YYYY-MM-DD
 
 {-# START_FILE LICENSE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2023{{/year}}
 
 All rights reserved.
 

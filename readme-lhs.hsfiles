@@ -20,7 +20,7 @@ author:
 maintainer:
   {{author-email}}{{^author-email}}example@example.com{{/author-email}}
 copyright:
-  {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
+  {{copyright}}{{^copyright}}{{year}}{{^year}}2023{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
 build-type:
   Simple
 cabal-version:
@@ -353,7 +353,7 @@ and this project adheres to the
 ## 0.0.1 - YYYY-MM-DD
 
 {-# START_FILE LICENSE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2023{{/year}}
 
 All rights reserved.
 

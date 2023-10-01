@@ -8,7 +8,7 @@ license:             ISC
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
-copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2022{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
+copyright:           {{copyright}}{{^copyright}}{{year}}{{^year}}2023{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}
 category:            {{category}}{{^category}}Development{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
@@ -148,7 +148,7 @@ This package uses [Semantic Versioning][1].
 [1]: http://semver.org/spec/v2.0.0.html
 
 {-# START_FILE LICENSE #-}
-Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2022{{/year}}
+Copyright {{author-name}}{{^author-name}}Author name here{{/author-name}} (c) {{year}}{{^year}}2023{{/year}}
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
