@@ -1,4 +1,6 @@
 {-# START_FILE {{name}}.cabal #-}
+cabal-version: 2.2
+
 name:
   {{name}}
 version:
@@ -12,7 +14,7 @@ category:
 homepage:
   https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}
 license:
-  BSD3
+  BSD-3-Clause
 license-file:
   LICENSE
 author:
@@ -23,8 +25,6 @@ copyright:
   {{copyright}}{{^copyright}}{{year}}{{^year}}2023{{/year}} {{authorName}}{{^authorName}}Author name here{{/authorName}}{{/copyright}}
 build-type:
   Simple
-cabal-version:
-  >=1.14
 extra-source-files:
   README.md
   CHANGELOG.md
