@@ -209,13 +209,26 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 :set -XQuasiQuotes
 
 {-# START_FILE .gitignore #-}
-dist*
+# GHC build artefacts
 *.hi
 *.o
-.hsenv*
+
+# Haskell Tool Stack-related
 .stack-work/
+
+# Cabal-related
+dist*
 .cabal-sandbox
 cabal.sandbox.config
+
+# macOS-related
 .DS_Store
+
+# Vim-related
 *.swp
+
+# keter package-related: https://hackage.haskell.org/package/keter
 *.keter
+
+# hsenv package-related: https://hackage.haskell.org/package/hsenv
+.hsenv*
