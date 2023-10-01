@@ -22,6 +22,24 @@ centrally.
 This repository's Wiki provides a place where the Haskell community can
 announce the availability of project templates at other locations.
 
+## License
+
+All the templates in this repository use identifiers from the
+[SPDX License List](https://spdx.org/licenses/) and all but two specify
+`BSD-3-Clause`.
+
+The SPDX expression syntax was first required by the Cabal
+Package Description Format Specification version 2.2 and that version is
+specified in template Cabal files. Hpack will also detect that the use of
+`BSD-3-Clause` in a template `package.yaml` file requires `cabal-version: 2.2`
+in a Cabal file.
+
+Stack, however, also supports versions of GHC that come with versions of the
+`Cabal` library before `Cabal-2.2.0.0`. If you are using such versions of GHC,
+edit the files produced by the template to replace `BSD-3-Clause` with `BSD3`
+and edit any Cabal files produced by the template to replace
+`cabal-version: 2.2` with `cabal-version: >=1.10`.
+
 ## Project template format
 
 Each project template is specified in an `.hsfiles` file, using the syntax of

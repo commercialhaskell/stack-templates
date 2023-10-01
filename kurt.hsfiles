@@ -1,9 +1,11 @@
 {-# START_FILE {{name}}.cabal #-}
+cabal-version:       2.2
+
 name:                {{name}}
 version:             0.1.0.0
 synopsis:            Short description of your package
 homepage:            https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme
-license:             BSD3
+license:             BSD-3-Clause
 license-file:        LICENSE
 author:              {{author-name}}{{^author-name}}Author name here{{/author-name}}
 maintainer:          {{author-email}}{{^author-email}}example@example.com{{/author-email}}
@@ -12,7 +14,6 @@ category:            {{category}}{{^category}}Web{{/category}}
 build-type:          Simple
 extra-source-files:  README.md
                      CHANGELOG.md
-cabal-version:       >=1.10
 
 -- To avoid duplicated efforts in documentation and dealing with the
 -- complications of embedding Haddock markup inside cabal files, it is
