@@ -9,7 +9,7 @@ executable          {{name}}
     main-is:        Main.hs
     extensions:     OverloadedStrings
     build-depends:  base   >= 4      && < 5
-                  , scotty
+                  , scotty >= 0.20
     ghc-options:    -Wall
                     -Wcompat
                     -Widentities
