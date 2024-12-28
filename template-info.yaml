@@ -8,6 +8,10 @@ foundation:
 franklinchen:
   description:
 
+gkt4:
+  description: >
+    Project based on gi-gtk >= 4.0.
+
 hakyll-template:
   description: A static website compiler library.
 

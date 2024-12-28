@@ -1,0 +1,182 @@
+{-# START_FILE package.yaml #-}
+name:                {{name}}
+version:             0.1.0.0
+github:              "{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}"
+license:             BSD-3-Clause
+author:              "{{author-name}}{{^author-name}}Author name here{{/author-name}}"
+maintainer:          "{{author-email}}{{^author-email}}example@example.com{{/author-email}}"
+copyright:           "{{copyright}}{{^copyright}}{{year}}{{^year}}2024{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}{{/copyright}}"
+
+extra-source-files:
+- README.md
+- CHANGELOG.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            {{category}}{{^category}}Web{{/category}}
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/{{github-username}}{{^github-username}}githubuser{{/github-username}}/{{name}}#readme>
+
+dependencies:
+- base >= 4.9 && < 5
+- gi-gio
+- gi-glib
+- gi-gobject
+- gi-gtk >= 4.0
+- haskell-gi-base
+- text
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  {{name}}-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+
+tests:
+  {{name}}-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - {{name}}
+
+{-# START_FILE Setup.hs #-}
+import Distribution.Simple
+main = defaultMain
+
+{-# START_FILE test/Spec.hs #-}
+main :: IO ()
+main = putStrLn "Test suite not yet implemented"
+
+{-# START_FILE src/Lib.hs #-}
+{-# LANGUAGE OverloadedStrings   #-}
+
+module Lib
+    ( greeting
+    ) where
+
+import           Data.Text ( Text )
+
+greeting :: Text
+greeting = "Hello, World!"
+
+{-# START_FILE app/Main.hs #-}
+{-# LANGUAGE ImplicitParams      #-}
+{-# LANGUAGE OverloadedLabels    #-}
+{-# LANGUAGE OverloadedRecordDot #-}
+{-# LANGUAGE OverloadedStrings   #-}
+
+import           Control.Monad ( void )
+import           Data.GI.Base ( AttrOp (..), new, set )
+import qualified GI.Gtk as Gtk
+
+import           Lib ( greeting )
+
+activate :: Gtk.Application -> IO ()
+activate app = do
+  button <- new Gtk.Button
+    [ #label := "Click me"
+    , On #clicked ( ?self `set` [ #sensitive := False
+                                , #label := "Thanks for clicking me"
+                                ]
+                  )
+    ]
+
+  window <- new Gtk.ApplicationWindow
+    [ #application := app
+    , #title := greeting
+    , #child := button
+    ]
+
+  window.show
+
+main :: IO ()
+main = do
+  app <- new Gtk.Application
+    [ #applicationId := "haskell-gi.example"
+    , On #activate (activate ?self)
+    ]
+  void $ app.run Nothing
+
+{-# START_FILE README.md #-}
+# {{name}}
+
+GTK4 requires certain C libraries. On Windows, these can be obtained with:
+
+~~~text
+stack exec -- pacman -Syu
+stack exec -- pacman -S mingw-w64-x86_64-pkgconf
+stack exec -- pacman -S mingw-w64-x86_64-gobject-introspection
+stack exec -- pacman -S mingw-w64-x86_64-gtksourceview5
+stack exec -- pacman -S mingw-w64-x86_64-gtk4
+~~~
+
+{-# START_FILE CHANGELOG.md #-}
+# Changelog for `{{ name }}`
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to the
+[Haskell Package Versioning Policy](https://pvp.haskell.org/).
+
+## Unreleased
+
+## 0.1.0.0 - YYYY-MM-DD
+
+{-# START_FILE LICENSE #-}
+Copyright {{year}}{{^year}}2024{{/year}} {{author-name}}{{^author-name}}Author name here{{/author-name}}
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1.  Redistributions of source code must retain the above copyright notice, this
+    list of conditions and the following disclaimer.
+
+2.  Redistributions in binary form must reproduce the above copyright notice,
+    this list of conditions and the following disclaimer in the documentation
+    and/or other materials provided with the distribution.
+
+3.  Neither the name of the copyright holder nor the names of its contributors
+    may be used to endorse or promote products derived from this software
+    without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+{-# START_FILE .gitignore #-}
+.stack-work/
+*~
