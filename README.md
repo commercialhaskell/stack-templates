@@ -5,7 +5,7 @@ From Stack 1.9.1, Stack allows any GitHub, GitLab or Bitbucket repository named
 template file at `username/stack-templates/my-template.hsfiles` on GitHub can be
 identified as `username/my-template` when using `stack new`. For more
 information see the output of the `stack templates` command and its
-[documentation](https://docs.haskellstack.org/en/stable/templates_command/).
+[documentation](https://docs.haskellstack.org/en/stable/commands/templates_command/).
 
 This repository provides the project template `new-template`, which is the
 default template used by `stack new`. It also provides `STACK_HELP.md`, which
